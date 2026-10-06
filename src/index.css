@@ -222,7 +222,7 @@ body {
   fill: url(#us-flag) !important;
   stroke: #fff;
   stroke-width: 0.5;
-  animation: waveFlag 50s infinite ease-in-out;
+  animation: waveFlag 3.8s infinite ease-in-out;
 }
 
 @keyframes waveFlag {
@@ -627,4 +627,67 @@ body {
 
 .leaderboard-mode {
   opacity: 0.55;
+}
+
+
+.victory-ceremony {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1rem, 5vh, 3rem);
+  transform: translateX(-50%);
+  z-index: 40;
+  width: min(560px, calc(100% - 2rem));
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+.victory-kicker {
+  color: #facc15;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.victory-ceremony h2 {
+  margin: 0.3rem 0;
+  font-size: clamp(1.45rem, 4vw, 2.2rem);
+}
+
+.victory-ceremony p {
+  margin: 0 0 0.8rem;
+  color: #cbd5e1;
+}
+
+.victory-continue {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 9999px;
+  padding: 0.65rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.victory-continue:hover,
+.victory-continue:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
+  outline: 3px solid #facc15;
+  outline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+  .victory-ceremony {
+    bottom: 0.75rem;
+    padding: 0.8rem 1rem;
+  }
+
+  .victory-ceremony p {
+    font-size: 0.82rem;
+  }
 }
