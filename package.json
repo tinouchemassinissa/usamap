@@ -8,8 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "node --test src/game/gameLogic.test.mjs"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
@@ -25,7 +24,6 @@
     "oxlint": "^1.81.0",
     "vite": "^8.3.0",
     "vite-plugin-pwa": "^0.20.1",
-    "workbox-window": "^7.1.0",
-    "vitest": "^3.2.4"
+    "workbox-window": "^7.1.0"
   }
 }
