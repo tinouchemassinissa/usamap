@@ -13,33 +13,50 @@
 
 ## Features
 
-- **Classic** — find the named state on the map.
-- **Time Attack** — score as much as possible in 60 seconds.
-- **Adaptive Practice** — state selection is weighted toward weaker mastery.
-- **Reverse** — identify a highlighted state.
-- **Capitals** — find the state from its capital.
-- **Trivia** — answer population, area, and capital questions.
-- **Flags** — identify a state from its flag.
-- **Study Guide** — inspect state facts and reference information.
-- **Region Explorer** — learn the four major U.S. regions.
-- **Persistent mastery tracking** stored locally on the device.
-- **Achievement badges** and high-score tracking.
-- **Classical focus music** — Bach's *Air on the G String* performed by the U.S. Air Force Strings, with an audible preview, persistent volume control, and a synthesized fallback if streaming fails.
-- **Victory ceremony** — mastering all 50 states fills the map with the U.S. flag and plays a public-domain U.S. Navy Band performance of *The Star-Spangled Banner*. A Continue button lets students move on immediately.
-- **Global leaderboard** for competitive modes.
-- **Installable PWA** with runtime caching for state flags, map topology, and fonts.
-- **Keyboard-accessible map controls**, screen-reader status feedback, browser zoom support, and reduced-motion handling.
+### Learning system
+- **Smart Review** with spaced repetition: each state tracks attempts, accuracy, mistakes, mastery, last seen, and next review.
+- **Mistake Review** focuses on states the learner has previously missed.
+- **Mastery map** uses color bands to distinguish unseen, weak, learning, and mastered states.
+- **Meaningful achievements** reward mastery, recovery from mistakes, perfect runs, capitals, flags, borders, and journeys.
 
-> Offline note: after the required assets have been loaded and cached at least once, the core game remains usable without a network connection. The online leaderboard and external research links naturally require connectivity.
+### Difficulty
+- **Beginner** — 5 lives, extra time, learning hints.
+- **Intermediate** — balanced default.
+- **Expert** — 2 lives, less time, higher scoring.
+- **Master** — 1 life, tight timing, maximum score multiplier.
 
-## Tech stack
+### Challenge modes
+- Classic
+- Time Attack
+- Reverse
+- Capitals
+- Trivia
+- Flags
+- **Mixed Challenge** — rotates states, capitals, flags, abbreviations, and regions.
+- **Neighbor Challenge** — identify states that border one another.
+- **USA Journey** — travel between states using valid neighboring-state routes.
+- Smart Review
+- Mistake Review
 
-- React 19
-- Vite 8
-- react-simple-maps / d3-geo
-- Firebase Firestore
-- vite-plugin-pwa / Workbox
-- Node built-in test runner
+### Explore and study
+- **State dossiers** with capital, population, area, statehood, geography, neighbors, fact, and personal learning history.
+- Region Explorer.
+- Study Guide.
+- **Per-mode records** for best score, accuracy, streak, wins, and plays.
+
+### Classroom and privacy
+- **Classroom Mode** keeps a session local and suppresses public leaderboard writes.
+- Optional class label.
+- Exportable local student progress report.
+
+### Experience
+- Bach's *Air on the G String* focus recording with mute/unmute and a remembered volume setting.
+- Completing a full 50-state challenge triggers the U.S.-flag map ceremony and public-domain U.S. Navy Band performance of *The Star-Spangled Banner*.
+- Responsive grouped Learn / Challenge / Explore interface.
+- Keyboard-accessible map interaction and reduced-motion support.
+
+### Offline-first PWA
+The application shell and bundled learning logic are precached. Map topology, flags, fonts, and classical audio use persistent runtime caches after they have been fetched successfully. Core learner progress, records, difficulty, classroom settings, and mastery data live locally, so they remain available without a network connection. Public leaderboard access and external research links still require connectivity.
 
 ## Local development
 
@@ -124,3 +141,10 @@ The performance is identified by Wikimedia Commons as a work of the U.S. federal
 The focus track is **J.S. Bach — Air on the G String**, performed by the **United States Air Force Band, Air Force Strings** and hosted by Wikimedia Commons. Wikimedia identifies the composition, performance, and recording as public domain in the United States:
 
 https://commons.wikimedia.org/wiki/File:Air_-_Air_Force_Strings_-_United_States_Air_Force_Band.mp3
+
+
+## v2 learning data
+
+The v2 learner profile is stored locally and migrates the previous scalar mastery values where available. Each state now has structured learning metadata used by Smart Review and Mistake Review. Per-mode records, difficulty, classroom settings, and audio preferences are also persisted locally.
+
+The state facts and population labels currently come from the repository's bundled educational dataset. They should be treated as a maintained content layer separate from the learning engine; future data-refresh work can update sources/years without changing the spaced-repetition model.
