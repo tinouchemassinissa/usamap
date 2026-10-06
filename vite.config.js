@@ -60,6 +60,20 @@ export default defineConfig({
                 statuses: [0, 200]
               }
             }
+          },
+          {
+            urlPattern: /^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/.*\.mp3$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'victory-anthem-cache',
+              expiration: {
+                maxEntries: 1,
+                maxAgeSeconds: 60 * 60 * 24 * 365
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
           }
         ]
       }

@@ -3,7 +3,7 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 're
 import { geoCentroid } from 'd3-geo';
 import confetti from 'canvas-confetti';
 import { STATE_DATA } from './data';
-import { playCorrectSound, playIncorrectSound, playVictorySound } from './audio';
+import { playCorrectSound, playIncorrectSound, playAnthem, startFocusMusic, stopAnthem, stopFocusMusic } from './audio';
 import { calculatePoints, generateMultipleChoice, isAnswerCorrect, sanitizePlayerName, selectWeightedState, updateMasteryScore } from './game/gameLogic';
 import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from './firebase';
@@ -92,8 +92,11 @@ function App() {
   const [correctAnswer, setCorrectAnswer] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [mastery, setMastery] = useState({});
+  const [musicEnabled, setMusicEnabled] = useState(true);
+  const [victoryCelebration, setVictoryCelebration] = useState(false);
 
   const timerRef = useRef(null);
+  const victoryTimeoutRef = useRef(null);
   const scoreRef = useRef(0);
 
   const fetchLeaderboard = async () => {
@@ -132,10 +135,16 @@ function App() {
     const savedMastery = JSON.parse(localStorage.getItem("usaMapMastery") || "{}");
     setMastery(savedMastery);
 
+    const savedMusicPreference = localStorage.getItem("usaMapMusic");
+    if (savedMusicPreference === "off") setMusicEnabled(false);
+
     fetchLeaderboard();
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (victoryTimeoutRef.current) clearTimeout(victoryTimeoutRef.current);
+      stopFocusMusic();
+      stopAnthem();
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
@@ -211,8 +220,10 @@ function App() {
     setMapView(DEFAULT_VIEW);
     setCorrectAnswer(null);
     setStatusMessage("");
+    setVictoryCelebration(false);
+    stopAnthem();
+    if (musicEnabled) startFocusMusic();
     pickNewTarget({});
-
   };
 
   const saveToLeaderboard = async (finalScore) => {
@@ -234,8 +245,65 @@ function App() {
   };
 
   const triggerGameOver = (finalScore) => {
+    if (victoryTimeoutRef.current) {
+      clearTimeout(victoryTimeoutRef.current);
+      victoryTimeoutRef.current = null;
+    }
+    stopFocusMusic();
+    stopAnthem();
+    setVictoryCelebration(false);
     setGameOver(true);
     saveToLeaderboard(finalScore);
+  };
+
+  const finishVictoryCelebration = () => {
+    if (victoryTimeoutRef.current) {
+      clearTimeout(victoryTimeoutRef.current);
+      victoryTimeoutRef.current = null;
+    }
+    stopAnthem();
+    setVictoryCelebration(false);
+    triggerGameOver(scoreRef.current);
+  };
+
+  const toggleMusic = () => {
+    const nextEnabled = !musicEnabled;
+    setMusicEnabled(nextEnabled);
+    localStorage.setItem("usaMapMusic", nextEnabled ? "on" : "off");
+
+    if (!nextEnabled) {
+      stopFocusMusic();
+      stopAnthem();
+      return;
+    }
+
+    if (gameStarted && !gameOver && victoryCelebration) {
+      playAnthem({
+        onEnded: () => triggerGameOver(scoreRef.current),
+        onError: () => {
+          victoryTimeoutRef.current = window.setTimeout(
+            () => triggerGameOver(scoreRef.current),
+            5000
+          );
+        }
+      });
+      return;
+    }
+
+    if (gameStarted && !gameOver) {
+      startFocusMusic();
+    }
+  };
+
+  const returnHome = () => {
+    if (victoryTimeoutRef.current) {
+      clearTimeout(victoryTimeoutRef.current);
+      victoryTimeoutRef.current = null;
+    }
+    stopFocusMusic();
+    stopAnthem();
+    setVictoryCelebration(false);
+    setGameStarted(false);
   };
 
   const pickNewTarget = (currentGuessed) => {
@@ -255,25 +323,38 @@ function App() {
 
     if (mode !== 'ADAPTIVE' && remaining.length === 0) {
       setTargetState("You Win!");
-      
-      playVictorySound();
-      
+      setVictoryCelebration(true);
+      stopFocusMusic();
+
       if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-        const duration = 3.5 * 1000;
+        const duration = 6 * 1000;
         const animationEnd = Date.now() + duration;
         const interval = setInterval(function() {
           const timeLeft = animationEnd - Date.now();
           if (timeLeft <= 0) {
             return clearInterval(interval);
           }
-          const particleCount = 50 * (timeLeft / duration);
-          celebrate({ startVelocity: 30, spread: 360, ticks: 60, zIndex: 0, particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } });
-        }, 250);
+          const particleCount = 45 * (timeLeft / duration);
+          celebrate({
+            startVelocity: 26,
+            spread: 360,
+            ticks: 60,
+            zIndex: 0,
+            particleCount,
+            origin: { x: Math.random(), y: Math.random() - 0.2 }
+          });
+        }, 300);
       }
 
-      setTimeout(() => {
-        triggerGameOver(score);
-      }, 3500);
+      if (musicEnabled) {
+        playAnthem({
+          onEnded: () => triggerGameOver(scoreRef.current),
+          onError: () => {
+            window.setTimeout(() => triggerGameOver(scoreRef.current), 5000);
+          }
+        });
+      }
+
       return;
     }
     const randomState = mode === 'ADAPTIVE'
@@ -480,6 +561,15 @@ function App() {
           <button className="icon-btn about-btn" onClick={() => setShowAbout(true)} title="About USA State Explorer" style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 100 }}>
             ℹ️
           </button>
+          <button
+            className="icon-btn music-toggle"
+            onClick={toggleMusic}
+            title={musicEnabled ? "Turn off classical focus music" : "Turn on classical focus music"}
+            aria-pressed={musicEnabled}
+            aria-label={musicEnabled ? "Classical focus music on" : "Classical focus music off"}
+          >
+            {musicEnabled ? "🎼" : "🔇"}
+          </button>
 
           {showAbout && (
             <div className="overlay" style={{ zIndex: 2000 }}>
@@ -489,7 +579,10 @@ function App() {
                   <div><strong>Author:</strong> Massinissa TINOUCHE</div>
                   <div><strong>Address:</strong> San Jose, CA USA</div>
                   <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', borderLeft: '4px solid var(--accent-blue)' }}>
-                    <strong>USA State Explorer</strong> is an interactive educational PWA designed to help students learn about the 50 US states, their flags, capitals, and geographic regions. Play offline, earn badges, and compete on the global leaderboard!
+                    <strong>USA State Explorer</strong> is an interactive educational PWA designed to help students learn about the 50 US states, their flags, capitals, and geographic regions. A gentle classical-style focus soundtrack supports study, and completing all 50 states unlocks a flag-map ceremony with <em>The Star-Spangled Banner</em>.
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                    Victory anthem performance: United States Navy Band — public-domain U.S. federal government recording.
                   </div>
                 </div>
                 <button className="btn-primary" onClick={() => setShowAbout(false)} style={{ marginTop: '2rem' }}>
@@ -558,8 +651,17 @@ function App() {
       </div>
       ) : (
       <div className="game-container">
-        <button className="icon-btn home-btn" onClick={() => setGameStarted(false)} title="Back to Menu">
+        <button className="icon-btn home-btn" onClick={returnHome} title="Back to Menu">
           🏠
+        </button>
+        <button
+          className="icon-btn music-toggle"
+          onClick={toggleMusic}
+          title={musicEnabled ? "Turn off classical focus music" : "Turn on classical focus music"}
+          aria-pressed={musicEnabled}
+          aria-label={musicEnabled ? "Classical focus music on" : "Classical focus music off"}
+        >
+          {musicEnabled ? "🎼" : "🔇"}
         </button>
       <div className="header">
         <div className="title-container">
@@ -584,7 +686,7 @@ function App() {
           </div>
         </div>
 
-        {!gameOver && !currentFact && (
+        {!gameOver && !currentFact && !victoryCelebration && (
           <div className="target-state-display" aria-live="polite">
             <span className="target-label">
               {mode === 'CAPITALS' ? "Find the state where the capital is:" : 
@@ -651,11 +753,11 @@ function App() {
                       }
                     }
                     
-                    if ((mode === 'REVERSE' || mode === 'TRIVIA' || mode === 'FLAGS') && stateName === targetState && !currentFact) {
+                    if ((mode === 'REVERSE' || mode === 'TRIVIA') && stateName === targetState && !currentFact) {
                       className += " target-highlight";
                     }
 
-                    if (targetState === "You Win!") {
+                    if (victoryCelebration) {
                       className = "state-path win-animation";
                     }
 
@@ -703,6 +805,17 @@ function App() {
           </ZoomableGroup>
         </ComposableMap>
 
+        {victoryCelebration && (
+          <section className="victory-ceremony" aria-live="polite">
+            <div className="victory-kicker">🇺🇸 50 STATES MASTERED</div>
+            <h2>The United States of America</h2>
+            <p>{musicEnabled ? "The Star-Spangled Banner · U.S. Navy Band" : "Victory ceremony · music is muted"}</p>
+            <button type="button" className="victory-continue" onClick={finishVictoryCelebration}>
+              Continue to final score
+            </button>
+          </section>
+        )}
+
         {floatingTexts.map(ft => (
           <div key={ft.id} className="floating-text" style={{ left: ft.x, top: ft.y }}>
             {ft.text}
@@ -711,7 +824,7 @@ function App() {
         ))}
       </div>
 
-      {!gameOver && !currentFact && (mode === 'REVERSE' || mode === 'TRIVIA' || mode === 'FLAGS') && (
+      {!gameOver && !currentFact && !victoryCelebration && (mode === 'REVERSE' || mode === 'TRIVIA' || mode === 'FLAGS') && (
         <div className="options-grid">
           {options.map((opt, i) => (
             <button key={i} className="option-btn" onClick={() => handleGuess(opt)}>
@@ -804,7 +917,7 @@ function App() {
             
             <Leaderboard entries={leaderboard} title="🌍 Top Players" limit={3} />
 
-            <button className="btn-primary" onClick={() => setGameStarted(false)}>
+            <button className="btn-primary" onClick={returnHome}>
               Back to Menu ↩️
             </button>
           </div>
