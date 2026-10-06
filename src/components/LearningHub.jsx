@@ -10,10 +10,13 @@ export default function LearningHub({
   records,
   classroom,
   onClassroomChange,
+  classSession,
+  onStartClassSession,
+  onEndClassSession,
+  onExportClassSession,
   focusVolume,
   onVolumeChange,
   online,
-  onExportReport,
 }) {
   const unlocked = achievements.filter((item) => item.unlocked);
   const topRecords = Object.entries(records)
@@ -89,18 +92,81 @@ export default function LearningHub({
             <span>Keep sessions local and off the public leaderboard</span>
           </label>
           {classroom.enabled && (
-            <>
-              <input
-                className="classroom-name-input"
-                value={classroom.className}
-                placeholder="Class name (optional)"
-                onChange={(event) => onClassroomChange({ ...classroom, className: event.target.value.slice(0, 40) })}
-                aria-label="Class name"
-              />
-              <button type="button" className="classroom-report-btn" onClick={onExportReport}>
-                Export student progress report
-              </button>
-            </>
+            <div className="classroom-session-panel">
+              <div className="classroom-field-grid">
+                <label>
+                  <span>Class</span>
+                  <input
+                    className="classroom-name-input"
+                    value={classroom.className}
+                    placeholder="Example: Grade 5 - Period 2"
+                    onChange={(event) => onClassroomChange({ ...classroom, className: event.target.value.slice(0, 50) })}
+                    aria-label="Class name"
+                  />
+                </label>
+                <label>
+                  <span>Teacher</span>
+                  <input
+                    className="classroom-name-input"
+                    value={classroom.teacherName}
+                    placeholder="Teacher name (optional)"
+                    onChange={(event) => onClassroomChange({ ...classroom, teacherName: event.target.value.slice(0, 50) })}
+                    aria-label="Teacher name"
+                  />
+                </label>
+              </div>
+              <label className="classroom-session-name">
+                <span>Session</span>
+                <input
+                  className="classroom-name-input"
+                  value={classroom.sessionName}
+                  placeholder="Example: Census Regions - Oct 6"
+                  onChange={(event) => onClassroomChange({ ...classroom, sessionName: event.target.value.slice(0, 60) })}
+                  aria-label="Class session name"
+                />
+              </label>
+
+              {classSession?.id ? (
+                <div className="class-session-status">
+                  <div>
+                    <span className="hub-eyebrow">{classSession.active ? 'ACTIVE CLASS SESSION' : 'LAST CLASS SESSION'}</span>
+                    <strong>{classSession.name}</strong>
+                    <small>
+                      {classSession.games.length} games · {classSession.attempts.length} recorded attempts
+                    </small>
+                  </div>
+                  <span className={'session-state-pill ' + (classSession.active ? 'active' : 'ended')}>
+                    {classSession.active ? 'Recording' : 'Ended'}
+                  </span>
+                </div>
+              ) : (
+                <div className="class-session-empty">
+                  Start a class session to record only the games and attempts from that lesson.
+                </div>
+              )}
+
+              <div className="classroom-actions">
+                <button type="button" className="classroom-session-btn" onClick={onStartClassSession}>
+                  {classSession?.active ? 'Start new session' : 'Start class session'}
+                </button>
+                {classSession?.active && (
+                  <button type="button" className="classroom-session-btn secondary" onClick={onEndClassSession}>
+                    End session
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="classroom-report-btn"
+                  onClick={onExportClassSession}
+                  disabled={!classSession?.id || (!classSession.games.length && !classSession.attempts.length)}
+                >
+                  Export this session to Excel (.xlsx)
+                </button>
+              </div>
+              <div className="classroom-scope-note">
+                Excel contains only this class session: session summary, games, and answer attempts. Lifetime mastery and the rest of the local database are not exported.
+              </div>
+            </div>
           )}
         </div>
       </div>

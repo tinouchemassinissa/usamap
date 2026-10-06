@@ -15,6 +15,8 @@ import LearningProgress from './components/LearningProgress';
 import ModeSelector from './components/ModeSelector';
 import LearningHub from './components/LearningHub';
 import StateDossier from './components/StateDossier';
+import { addSessionAttempt, addSessionGame, buildClassWorkbookSheets, createClassSession, endClassSession, finishSessionGame } from './classroomSession';
+import { downloadWorkbook } from './export/xlsxExport';
 import './index.css';
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
@@ -94,7 +96,8 @@ function App() {
   const [learnerProfile, setLearnerProfile] = useState(() => normalizeLearnerProfile({}, STATE_NAMES));
   const [records, setRecords] = useState({});
   const [difficulty, setDifficulty] = useState('INTERMEDIATE');
-  const [classroom, setClassroom] = useState({ enabled: false, className: '' });
+  const [classroom, setClassroom] = useState({ enabled: false, className: '', teacherName: '', sessionName: '' });
+  const [classSession, setClassSession] = useState(null);
   const [online, setOnline] = useState(() => navigator.onLine);
   const [sessionStats, setSessionStats] = useState({ attempts: 0, correct: 0, bestStreak: 0, mistakes: {} });
   const [dossierState, setDossierState] = useState(null);
@@ -109,6 +112,7 @@ function App() {
   const victoryTimeoutRef = useRef(null);
   const scoreRef = useRef(0);
   const sessionStatsRef = useRef(sessionStats);
+  const activeClassGameIdRef = useRef(null);
 
   const mastery = Object.fromEntries(
     STATE_NAMES.map((state) => [state, learnerProfile.states[state]?.mastery || 0])
@@ -155,7 +159,10 @@ function App() {
     if (DIFFICULTY_PROFILES[savedDifficulty]) setDifficulty(savedDifficulty);
 
     const savedClassroom = JSON.parse(localStorage.getItem("usaMapClassroom") || "null");
-    if (savedClassroom) setClassroom(savedClassroom);
+    if (savedClassroom) setClassroom({ enabled: false, className: '', teacherName: '', sessionName: '', ...savedClassroom });
+
+    const savedClassSession = JSON.parse(localStorage.getItem("usaMapClassSession") || "null");
+    if (savedClassSession) setClassSession(savedClassSession);
 
     const handleOnline = () => setOnline(true);
     const handleOffline = () => setOnline(false);
@@ -187,6 +194,23 @@ function App() {
   useEffect(() => {
     sessionStatsRef.current = sessionStats;
   }, [sessionStats]);
+
+  useEffect(() => {
+    if (!gameStarted) {
+      document.documentElement.classList.remove('game-running');
+      document.body.classList.remove('game-running');
+      return;
+    }
+
+    window.scrollTo(0, 0);
+    document.documentElement.classList.add('game-running');
+    document.body.classList.add('game-running');
+
+    return () => {
+      document.documentElement.classList.remove('game-running');
+      document.body.classList.remove('game-running');
+    };
+  }, [gameStarted]);
 
   useEffect(() => {
     scoreRef.current = score;
@@ -245,6 +269,24 @@ function App() {
     setJourney({ path: [], index: 0, start: '', destination: '' });
     setVictoryCelebration(false);
     stopAnthem();
+
+    if (classroom.enabled) {
+      let session = classSession;
+      if (!session?.active) {
+        session = createClassSession(classroom);
+      }
+      const { session: sessionWithGame, gameId } = addSessionGame(session, {
+        student: finalName,
+        mode,
+        difficulty,
+      });
+      activeClassGameIdRef.current = gameId;
+      persistClassSession(sessionWithGame);
+    } else {
+      activeClassGameIdRef.current = null;
+    }
+
+    window.scrollTo(0, 0);
     if (musicEnabled) startFocusMusic(focusVolume);
 
     if (mode === 'JOURNEY') {
@@ -308,6 +350,25 @@ function App() {
       return next;
     });
 
+    if (classroom.enabled && activeClassGameIdRef.current) {
+      setClassSession((previous) => {
+        if (!previous) return previous;
+        const next = finishSessionGame(previous, activeClassGameIdRef.current, {
+          score: finalScore,
+          attempts: stats.attempts,
+          correct: stats.correct,
+          accuracy,
+          bestStreak: stats.bestStreak,
+          completed,
+          status: completed ? 'completed' : 'ended',
+          statesMissed: Object.keys(stats.mistakes),
+        });
+        localStorage.setItem("usaMapClassSession", JSON.stringify(next));
+        return next;
+      });
+      activeClassGameIdRef.current = null;
+    }
+
     saveToLeaderboard(finalScore);
   };
 
@@ -360,25 +421,60 @@ function App() {
     localStorage.setItem("usaMapClassroom", JSON.stringify(nextClassroom));
   };
 
-  const exportLearningReport = () => {
-    const report = {
-      product: 'USA State Explorer',
-      className: classroom.className || null,
-      student: sanitizePlayerName(playerName),
-      generatedAt: new Date().toISOString(),
-      difficulty,
-      summary: progressSummary,
-      records,
-      achievements: achievements.filter((item) => item.unlocked).map((item) => item.title),
-      states: learnerProfile.states,
-    };
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'usa-state-explorer-' + sanitizePlayerName(playerName).replace(/\s+/g, '-').toLowerCase() + '-progress.json';
-    anchor.click();
-    URL.revokeObjectURL(url);
+  const persistClassSession = (nextSession) => {
+    setClassSession(nextSession);
+    if (nextSession) {
+      localStorage.setItem("usaMapClassSession", JSON.stringify(nextSession));
+    } else {
+      localStorage.removeItem("usaMapClassSession");
+    }
+  };
+
+  const startNewClassSession = () => {
+    const nextSession = createClassSession(classroom);
+    activeClassGameIdRef.current = null;
+    persistClassSession(nextSession);
+  };
+
+  const endCurrentClassSession = () => {
+    if (!classSession?.id) return;
+    const ended = endClassSession(classSession);
+    activeClassGameIdRef.current = null;
+    persistClassSession(ended);
+  };
+
+  const exportClassSessionExcel = () => {
+    if (!classSession?.id) return;
+    const safeName = (classSession.name || 'class-session')
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-|-$/g, '')
+      .toLowerCase();
+    downloadWorkbook(
+      'usa-state-explorer-' + (safeName || 'class-session') + '.xlsx',
+      buildClassWorkbookSheets(classSession)
+    );
+  };
+
+  const recordClassAttempt = ({ target, response, correct, scoreAfter, streakAfter, variant = challengeVariant }) => {
+    if (!classroom.enabled || !classSession?.active || !activeClassGameIdRef.current) return;
+    setClassSession((previous) => {
+      if (!previous?.active) return previous;
+      const next = addSessionAttempt(previous, {
+        gameId: activeClassGameIdRef.current,
+        student: sanitizePlayerName(playerName),
+        mode,
+        difficulty,
+        variant,
+        target,
+        response,
+        correct,
+        scoreAfter,
+        streakAfter,
+        targetData: STATE_DATA[target],
+      });
+      localStorage.setItem("usaMapClassSession", JSON.stringify(next));
+      return next;
+    });
   };
 
   const handleFocusVolumeChange = (event) => {
@@ -393,6 +489,27 @@ function App() {
   };
 
   const returnHome = () => {
+    if (classroom.enabled && activeClassGameIdRef.current && !gameOver) {
+      const stats = sessionStatsRef.current;
+      const accuracy = stats.attempts ? Math.round(stats.correct / stats.attempts * 100) : 0;
+      setClassSession((previous) => {
+        if (!previous) return previous;
+        const next = finishSessionGame(previous, activeClassGameIdRef.current, {
+          score: scoreRef.current,
+          attempts: stats.attempts,
+          correct: stats.correct,
+          accuracy,
+          bestStreak: stats.bestStreak,
+          completed: false,
+          status: 'abandoned',
+          statesMissed: Object.keys(stats.mistakes),
+        });
+        localStorage.setItem("usaMapClassSession", JSON.stringify(next));
+        return next;
+      });
+      activeClassGameIdRef.current = null;
+    }
+
     if (victoryTimeoutRef.current) {
       clearTimeout(victoryTimeoutRef.current);
       victoryTimeoutRef.current = null;
@@ -510,12 +627,12 @@ function App() {
     if (gameOver || currentFact || !gameStarted) return;
 
     if (mode === 'TRIVIA' || mode === 'MIXED') {
-      processAnswer(guess === correctAnswer, targetState, null);
+      processAnswer(guess === correctAnswer, targetState, null, guess);
       return;
     }
 
     if (mode === 'REVERSE' || mode === 'FLAGS') {
-      processAnswer(isAnswerCorrect({ mode, guess, targetState, correctAnswer }), targetState, null);
+      processAnswer(isAnswerCorrect({ mode, guess, targetState, correctAnswer }), targetState, null, guess);
       return;
     }
 
@@ -551,6 +668,14 @@ function App() {
           localStorage.setItem("usaMapLearnerProfile", JSON.stringify(next));
           return next;
         });
+        recordClassAttempt({
+          target: currentState,
+          response: stateName,
+          correct: false,
+          scoreAfter: scoreRef.current,
+          streakAfter: 0,
+          variant: 'JOURNEY',
+        });
         setStatusMessage(stateName + ' is not the next state on this route. From ' + currentState + ', look for the highlighted shortest-path neighbor.');
         setLives((previous) => {
           const nextLives = previous - 1;
@@ -576,6 +701,14 @@ function App() {
       const points = Math.round(calculatePoints(newStreak) * DIFFICULTY_PROFILES[difficulty].scoreMultiplier);
       setScore((previous) => previous + points);
       setStreak(newStreak);
+      recordClassAttempt({
+        target: stateName,
+        response: stateName,
+        correct: true,
+        scoreAfter: scoreRef.current + points,
+        streakAfter: newStreak,
+        variant: 'JOURNEY',
+      });
       setGuessedStates((previous) => ({ ...previous, [stateName]: 'correct' }));
       setSessionStats((previous) => {
         const next = {
@@ -670,6 +803,18 @@ function App() {
       };
       sessionStatsRef.current = next;
       return next;
+    });
+
+    const predictedStreak = isCorrect ? streak + 1 : 0;
+    const predictedScore = isCorrect
+      ? score + Math.round(calculatePoints(streak + 1) * DIFFICULTY_PROFILES[difficulty].scoreMultiplier)
+      : score;
+    recordClassAttempt({
+      target: stateName,
+      response: guessedState,
+      correct: isCorrect,
+      scoreAfter: predictedScore,
+      streakAfter: predictedStreak,
     });
 
     if (isCorrect) {
@@ -772,9 +917,9 @@ function App() {
   const sessionAccuracy = sessionStats.attempts ? Math.round(sessionStats.correct / sessionStats.attempts * 100) : 0;
 
   return (
-    <div className="game-wrapper" style={{ width: '100vw', height: '100vh' }}>
+    <div className={'game-wrapper ' + (gameStarted ? 'game-wrapper-active' : 'game-wrapper-home')}>
       {!gameStarted ? (
-        <div className="game-container" style={{ justifyContent: 'center' }}>
+        <div className="game-container home-active" style={{ justifyContent: 'center' }}>
           <button className="icon-btn about-btn" onClick={() => setShowAbout(true)} title="About USA State Explorer" style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 100 }}>
             ℹ️
           </button>
@@ -863,10 +1008,13 @@ function App() {
             records={records}
             classroom={classroom}
             onClassroomChange={handleClassroomChange}
+            classSession={classSession}
+            onStartClassSession={startNewClassSession}
+            onEndClassSession={endCurrentClassSession}
+            onExportClassSession={exportClassSessionExcel}
             focusVolume={focusVolume}
             onVolumeChange={handleFocusVolumeChange}
             online={online}
-            onExportReport={exportLearningReport}
           />
 
           <LearningProgress percent={overallMastery} mastered={masteredCount} />
@@ -875,7 +1023,7 @@ function App() {
         </main>
       </div>
       ) : (
-      <div className="game-container">
+      <div className="game-container game-active">
         <button className="icon-btn home-btn" onClick={returnHome} title="Back to Menu">
           🏠
         </button>

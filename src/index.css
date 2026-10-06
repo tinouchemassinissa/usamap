@@ -1426,3 +1426,277 @@ body {
     height: clamp(280px, 50dvh, 440px);
   }
 }
+
+
+/* Active game must fit the browser viewport, not the previous page scroll height. */
+html.game-running,
+body.game-running {
+  width: 100%;
+  height: 100%;
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+body.game-running #root {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.game-wrapper {
+  width: 100%;
+  min-height: 100dvh;
+}
+
+.game-wrapper-home {
+  height: auto;
+  overflow: visible;
+}
+
+.game-wrapper-active {
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.game-container.home-active {
+  min-height: 100dvh;
+  height: auto;
+  overflow: visible;
+}
+
+.game-container.game-active {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  padding: clamp(0.35rem, 1.2vh, 0.8rem) 1rem;
+}
+
+.game-active .header {
+  flex: 0 0 auto;
+  margin-bottom: clamp(0.3rem, 0.8vh, 0.75rem);
+}
+
+.game-active .title-container {
+  margin-bottom: clamp(0.2rem, 0.5vh, 0.45rem);
+}
+
+.game-active .title-container .mascot {
+  font-size: clamp(1.6rem, 3.4vh, 2.5rem);
+}
+
+.game-active .title-container .title {
+  font-size: clamp(1.65rem, 4vh, 2.5rem) !important;
+  line-height: 1.05;
+}
+
+.game-active .target-state-display {
+  margin-top: clamp(0.25rem, 0.65vh, 0.6rem);
+}
+
+.game-active .target-name {
+  padding-top: clamp(0.35rem, 0.7vh, 0.65rem);
+  padding-bottom: clamp(0.35rem, 0.7vh, 0.65rem);
+}
+
+.game-active .census-geo-toolbar {
+  flex: 0 0 auto;
+  margin-top: 0;
+  margin-bottom: clamp(0.25rem, 0.6vh, 0.5rem);
+}
+
+.game-active .map-container {
+  flex: 1 1 0;
+  min-height: 0;
+  height: auto !important;
+  max-height: none;
+  width: min(100%, 1100px);
+  margin: 0 auto;
+}
+
+.game-active .main-map-svg {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.game-active > .options-grid {
+  flex: 0 0 auto;
+  margin-top: clamp(0.25rem, 0.6vh, 0.6rem);
+  padding-bottom: 0.1rem;
+}
+
+@media (max-height: 720px) and (min-width: 769px) {
+  .game-container.game-active {
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+  }
+
+  .game-active .header {
+    margin-bottom: 0.2rem;
+  }
+
+  .game-active .glass-panel {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .game-active .target-label {
+    font-size: 0.85rem;
+  }
+
+  .game-active .target-name {
+    font-size: 1.55rem;
+  }
+
+  .game-active .census-legend {
+    padding-top: 0.25rem;
+  }
+}
+
+/* Classroom session controls: export only the lesson/session, never lifetime data. */
+.classroom-session-panel {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.classroom-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.classroom-field-grid label,
+.classroom-session-name {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.classroom-field-grid label > span,
+.classroom-session-name > span {
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.class-session-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  background: rgba(59, 130, 246, 0.07);
+}
+
+.class-session-status > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.class-session-status small,
+.class-session-empty,
+.classroom-scope-note {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.session-state-pill {
+  flex: 0 0 auto;
+  border-radius: 9999px;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.session-state-pill.active {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+}
+
+.session-state-pill.ended {
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.classroom-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.classroom-actions .classroom-report-btn {
+  grid-column: 1 / -1;
+}
+
+.classroom-session-btn {
+  width: 100%;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 0.65rem;
+  padding: 0.6rem 0.7rem;
+  background: rgba(59, 130, 246, 0.1);
+  color: #dbeafe;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.classroom-session-btn.secondary {
+  border-color: rgba(148, 163, 184, 0.28);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.classroom-session-btn:hover,
+.classroom-session-btn:focus-visible,
+.classroom-report-btn:focus-visible {
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
+}
+
+.classroom-report-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.classroom-scope-note {
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.6rem;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.16);
+}
+
+@media (max-width: 768px) {
+  .game-container.game-active {
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
+    padding: 0.25rem;
+  }
+
+  .game-active .map-container {
+    flex: 1 1 0;
+    height: auto !important;
+    min-height: 0;
+  }
+
+  .classroom-field-grid,
+  .classroom-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .classroom-actions .classroom-report-btn {
+    grid-column: auto;
+  }
+}
