@@ -217,8 +217,11 @@ function App() {
       return;
     }
 
-    const remaining = STATE_NAMES.filter(s => currentGuessed[s] !== "correct");
-    if (remaining.length === 0) {
+    const remaining = mode === 'ADAPTIVE'
+      ? STATE_NAMES.filter((state) => state !== targetState)
+      : STATE_NAMES.filter((state) => currentGuessed[state] !== "correct");
+
+    if (mode !== 'ADAPTIVE' && remaining.length === 0) {
       setTargetState("You Win!");
       
       playVictorySound();
@@ -278,7 +281,7 @@ function App() {
 
   const handleGuessMap = (guess, evt) => {
     if (gameOver || currentFact || !gameStarted) return;
-    processAnswer(guess === targetState, guess, evt);
+    processAnswer(guess === targetState, targetState, evt, guess);
   };
 
   const handleMapClickFinal = (geo, evt) => {
@@ -333,7 +336,7 @@ function App() {
     handleGuessMap(stateName, evt);
   };
 
-  const processAnswer = (isCorrect, stateName, evt) => {
+  const processAnswer = (isCorrect, stateName, evt, guessedState = stateName) => {
     if (STATE_DATA[stateName]) {
       setMastery((previous) => {
         const next = {
@@ -385,7 +388,7 @@ function App() {
       playIncorrectSound();
       setStatusMessage("Incorrect. Try again.");
       setStreak(0);
-      setGuessedStates(prev => ({ ...prev, [stateName]: "incorrect" }));
+      setGuessedStates(prev => ({ ...prev, [guessedState]: "incorrect" }));
       
       if (mode === 'TIME_ATTACK') {
         setTimeLeft(prev => Math.max(0, prev - 5));
@@ -400,7 +403,7 @@ function App() {
       setTimeout(() => {
         setGuessedStates(prev => {
           const updated = { ...prev };
-          if (updated[stateName] === "incorrect") delete updated[stateName];
+          if (updated[guessedState] === "incorrect") delete updated[guessedState];
           return updated;
         });
       }, 800);
