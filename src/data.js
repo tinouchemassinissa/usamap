@@ -1,5 +1,5 @@
 import { CENSUS_STATE_GEOGRAPHY } from './censusGeography';
-import { OFFICIAL_DATA_SOURCES, POPULATION_2025, formatPopulation, populationQuickFactsUrl } from './officialStateData';
+import { OFFICIAL_DATA_SOURCES, POPULATION_2025, TOTAL_AREA_SQ_MI_2010, formatAreaSqMi, formatPopulation, populationQuickFactsUrl } from './officialStateData';
 
 const BASE_STATE_DATA = {
   "Alabama": {  code: "al", capital: "Montgomery", population: "5 Million", area: "52,420 sq mi", fact: "The first rocket to put humans on the moon was built here!" , statehood: "Dec 14, 1819", geography: "Gulf Coastal Plain" , region: "South"},
@@ -59,6 +59,7 @@ export const STATE_DATA = Object.fromEntries(
   Object.entries(BASE_STATE_DATA).map(([stateName, data]) => {
     const census = CENSUS_STATE_GEOGRAPHY[stateName];
     const populationValue = POPULATION_2025[stateName];
+    const totalAreaSqMi = TOTAL_AREA_SQ_MI_2010[stateName];
     return [
       stateName,
       {
@@ -69,6 +70,9 @@ export const STATE_DATA = Object.fromEntries(
         population: populationValue ? formatPopulation(populationValue) : data.population,
         populationValue: populationValue || null,
         populationYear: 2025,
+        area: totalAreaSqMi ? formatAreaSqMi(totalAreaSqMi) : data.area,
+        totalAreaSqMi: totalAreaSqMi || null,
+        areaReferenceYear: 2010,
         verifiedFact: populationValue && census
           ? stateName + ' is in the U.S. Census Bureau ' + census.division +
             ' Division of the ' + census.region + ' Region. Its July 1, 2025 population estimate is ' +
@@ -95,7 +99,7 @@ export const STATE_DATA = Object.fromEntries(
           censusDivision: 'verified',
           fips: 'verified',
           population: populationValue ? 'verified-v2025' : 'pending',
-          area: 'census-source-attached',
+          area: totalAreaSqMi ? 'verified-census-2010-total-area' : 'pending',
           statehood: 'source-attached-manual-review-pending',
           verifiedFact: populationValue && census ? 'verified' : 'pending',
           legacyFact: 'quarantined-manual-review-pending',
