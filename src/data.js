@@ -69,6 +69,12 @@ export const STATE_DATA = Object.fromEntries(
         population: populationValue ? formatPopulation(populationValue) : data.population,
         populationValue: populationValue || null,
         populationYear: 2025,
+        verifiedFact: populationValue && census
+          ? stateName + ' is in the U.S. Census Bureau ' + census.division +
+            ' Division of the ' + census.region + ' Region. Its July 1, 2025 population estimate is ' +
+            formatPopulation(populationValue) + '.'
+          : null,
+        legacyFact: data.fact,
         sources: {
           censusGeography: OFFICIAL_DATA_SOURCES.censusRegions,
           population: populationValue
@@ -91,7 +97,8 @@ export const STATE_DATA = Object.fromEntries(
           population: populationValue ? 'verified-v2025' : 'pending',
           area: 'census-source-attached',
           statehood: 'source-attached-manual-review-pending',
-          fact: 'manual-review-pending',
+          verifiedFact: populationValue && census ? 'verified' : 'pending',
+          legacyFact: 'quarantined-manual-review-pending',
           nickname: 'not-yet-added',
           landmark: 'not-yet-added',
           stateSymbols: 'not-yet-added',
