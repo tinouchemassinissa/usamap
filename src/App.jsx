@@ -276,29 +276,6 @@ function App() {
     processAnswer(guess === targetState, targetState, null);
   };
 
-  const handleMapClick = (geo, evt) => {
-    if (gameOver || currentFact || !gameStarted) return;
-    const stateName = geo.properties.name;
-
-    if (mode === 'STUDY') {
-      if (STATE_NAMES.includes(stateName)) {
-        setCurrentFact({
-          state: stateName,
-          text: STATE_DATA[stateName].fact,
-          pointsEarned: 0
-        });
-      }
-      return;
-    }
-
-    if (mode === 'REVERSE' || mode === 'FLAGS' || mode === 'TRIVIA') return; // In these modes, use buttons
-    
-    if (guessedStates[stateName] === "correct" || !STATE_NAMES.includes(stateName)) return;
-
-    // Pass the click coordinates for the floating combo text
-    handleGuess(stateName, evt);
-  };
-
   const handleGuessMap = (guess, evt) => {
     if (gameOver || currentFact || !gameStarted) return;
     processAnswer(guess === targetState, guess, evt);
