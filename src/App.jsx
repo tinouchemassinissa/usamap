@@ -267,7 +267,17 @@ function App() {
       return;
     }
 
-    if (gameStarted && !gameOver && !victoryCelebration) {
+    if (gameStarted && !gameOver && victoryCelebration) {
+      playAnthem({
+        onEnded: () => triggerGameOver(scoreRef.current),
+        onError: () => {
+          window.setTimeout(() => triggerGameOver(scoreRef.current), 5000);
+        }
+      });
+      return;
+    }
+
+    if (gameStarted && !gameOver) {
       startFocusMusic();
     }
   };
