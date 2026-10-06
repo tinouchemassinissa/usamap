@@ -4,6 +4,7 @@ import { geoCentroid } from 'd3-geo';
 import confetti from 'canvas-confetti';
 import { STATE_DATA } from './data';
 import { playCorrectSound, playIncorrectSound } from './audio';
+import { calculatePoints, generateMultipleChoice, isAnswerCorrect, sanitizePlayerName } from './game/gameLogic';
 import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from './firebase';
 import './index.css';
@@ -193,7 +194,7 @@ function App() {
   };
 
   const startGame = () => {
-    const finalName = (playerName.trim() || "Explorer").replace(/[<>]/g, "").slice(0, 24);
+    const finalName = sanitizePlayerName(playerName);
     setPlayerName(finalName);
     setGameStarted(true);
     setScore(0);
@@ -220,7 +221,7 @@ function App() {
     if (finalScore > 0 && playerName) {
       try {
         await addDoc(collection(db, "usa-map-leaderboard"), {
-          name: playerName.replace(/[<>]/g, "").slice(0, 24),
+          name: sanitizePlayerName(playerName),
           score: finalScore,
           mode: mode,
           date: new Date().toISOString()
@@ -235,18 +236,6 @@ function App() {
   const triggerGameOver = (finalScore) => {
     setGameOver(true);
     saveToLeaderboard(finalScore);
-  };
-
-  const generateMultipleChoice = (correctAnswer, type) => {
-    const opts = new Set([correctAnswer]);
-    while(opts.size < 4) {
-      const randState = STATE_NAMES[Math.floor(Math.random() * STATE_NAMES.length)];
-      if (type === 'name') opts.add(randState);
-      else if (type === 'population') opts.add(STATE_DATA[randState].population);
-      else if (type === 'area') opts.add(STATE_DATA[randState].area);
-      else if (type === 'capital') opts.add(STATE_DATA[randState].capital);
-    }
-    return Array.from(opts).sort(() => Math.random() - 0.5);
   };
 
   const pickNewTarget = (currentGuessed) => {
@@ -293,17 +282,17 @@ function App() {
 
     if (mode === 'REVERSE') {
       setCorrectAnswer(randomState);
-      setOptions(generateMultipleChoice(randomState, 'name'));
+      setOptions(generateMultipleChoice(randomState, 'name', STATE_DATA));
     } else if (mode === 'FLAGS') {
       setCorrectAnswer(randomState);
-      setOptions(generateMultipleChoice(randomState, 'name'));
+      setOptions(generateMultipleChoice(randomState, 'name', STATE_DATA));
     } else if (mode === 'TRIVIA') {
       const types = ['population', 'area', 'capital'];
       const questionType = types[Math.floor(Math.random() * types.length)];
       const answer = STATE_DATA[randomState][questionType];
       setCorrectAnswer(answer);
       setTriviaQuestion(`What is the ${questionType} of this state?`);
-      setOptions(generateMultipleChoice(answer, questionType));
+      setOptions(generateMultipleChoice(answer, questionType, STATE_DATA));
     }
   };
 
@@ -311,12 +300,12 @@ function App() {
     if (gameOver || currentFact || !gameStarted) return;
 
     if (mode === 'TRIVIA') {
-      processAnswer(guess === correctAnswer, targetState, null);
+      processAnswer(isAnswerCorrect({ mode, guess, targetState, correctAnswer }), targetState, null);
       return;
     }
 
     if (mode === 'REVERSE' || mode === 'FLAGS') {
-      processAnswer(guess === targetState, targetState, null);
+      processAnswer(isAnswerCorrect({ mode, guess, targetState, correctAnswer }), targetState, null);
       return;
     }
 
@@ -413,7 +402,7 @@ function App() {
       const newStreak = streak + 1;
       setStreak(newStreak);
       
-      const points = 10 * newStreak;
+      const points = calculatePoints(newStreak);
       const newScore = score + points;
       setScore(newScore);
       if (mode === 'TIME_ATTACK') setTimeLeft(prev => prev + 2);
