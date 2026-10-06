@@ -2033,3 +2033,239 @@ body {
     max-width: 1900px;
   }
 }
+
+
+/* Active-game responsive refinements for tablets and phones. */
+@media (max-width: 900px) {
+  .game-container.game-active {
+    padding:
+      max(0.35rem, env(safe-area-inset-top))
+      max(0.45rem, env(safe-area-inset-right))
+      max(0.35rem, env(safe-area-inset-bottom))
+      max(0.45rem, env(safe-area-inset-left));
+  }
+
+  .game-active .header {
+    width: 100%;
+    max-width: none;
+  }
+
+  .game-active .header > .glass-panel {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem;
+    flex-wrap: nowrap;
+  }
+
+  .game-active .stat-value {
+    font-size: clamp(1rem, 3.5vw, 1.3rem);
+  }
+
+  .game-active .stat-label {
+    font-size: 0.68rem;
+  }
+
+  .game-active .target-state-display {
+    margin-top: 0.4rem;
+  }
+
+  .game-active .target-label {
+    font-size: clamp(0.8rem, 2.6vw, 1rem);
+    margin-bottom: 0.3rem;
+  }
+
+  .game-active .target-name {
+    max-width: calc(100vw - 1.5rem);
+    font-size: clamp(1.25rem, 5vw, 2rem);
+    padding: 0.4rem 1rem;
+    gap: 0.55rem !important;
+    line-height: 1.1;
+  }
+
+  .game-active .target-name img {
+    max-height: 54px;
+    width: auto !important;
+  }
+
+  .game-active .icon-btn {
+    width: 42px;
+    height: 42px;
+    top: max(0.45rem, env(safe-area-inset-top));
+    font-size: 1.1rem;
+  }
+
+  .game-active .home-btn {
+    left: max(0.45rem, env(safe-area-inset-left));
+  }
+
+  .game-active .music-toggle {
+    right: max(0.45rem, env(safe-area-inset-right));
+  }
+
+  .game-active .options-grid {
+    width: min(100%, 720px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+  }
+
+  .game-active .option-btn {
+    padding: 0.65rem;
+    font-size: 0.95rem;
+  }
+
+  .game-active .census-geo-toolbar {
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    gap: 0.45rem;
+  }
+
+  .game-active .census-legend {
+    gap: 0.3rem 0.55rem;
+  }
+
+  .game-active .census-legend-item {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .game-active .title-container {
+    min-height: 38px;
+    gap: 0.35rem;
+    padding-inline: 2.8rem;
+  }
+
+  .game-active .title-container .mascot {
+    display: none;
+  }
+
+  .game-active .title-container .title {
+    font-size: clamp(1.2rem, 6vw, 1.65rem) !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .game-active .header > .glass-panel {
+    grid-template-columns: repeat(3, 1fr);
+    border-radius: 0.65rem;
+  }
+
+  .game-active .target-name {
+    width: auto;
+    min-width: min(82vw, 280px);
+    max-width: calc(100vw - 1rem);
+  }
+
+  .game-active .options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-active .option-btn {
+    padding: 0.55rem;
+    font-size: 0.9rem;
+  }
+
+  .game-active .beginner-hint,
+  .game-active .journey-strip {
+    font-size: 0.72rem;
+    margin-top: 0.25rem;
+  }
+
+  .game-active .census-geo-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .game-active .census-geo-toggle {
+    justify-self: center;
+  }
+
+  .game-active .census-geo-toolbar > a {
+    justify-self: center;
+  }
+
+  .game-active .census-legend {
+    justify-content: center;
+  }
+
+  .victory-ceremony {
+    width: calc(100% - 0.75rem);
+    bottom: max(0.35rem, env(safe-area-inset-bottom));
+    padding: 0.7rem;
+  }
+
+  .victory-ceremony h2 {
+    font-size: 1.35rem;
+  }
+
+  .ceremony-stats {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.25rem;
+  }
+}
+
+/* Landscape phones: reserve almost all vertical space for the map. */
+@media (orientation: landscape) and (max-height: 560px) and (max-width: 950px) {
+  .game-container.game-active {
+    padding-top: max(0.15rem, env(safe-area-inset-top));
+    padding-bottom: max(0.15rem, env(safe-area-inset-bottom));
+  }
+
+  .game-active .title-container {
+    display: none;
+  }
+
+  .game-active .header {
+    margin-bottom: 0.15rem;
+  }
+
+  .game-active .header > .glass-panel {
+    padding: 0.25rem 0.4rem;
+  }
+
+  .game-active .target-state-display {
+    margin-top: 0.2rem;
+  }
+
+  .game-active .target-label {
+    margin-bottom: 0.15rem;
+    font-size: 0.72rem;
+  }
+
+  .game-active .target-name {
+    font-size: 1.15rem;
+    padding: 0.28rem 0.7rem;
+  }
+
+  .game-active .target-name img {
+    max-height: 34px;
+  }
+
+  .game-active .census-geo-toolbar {
+    padding: 0.3rem 0.45rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .game-active .census-legend {
+    display: none;
+  }
+
+  .game-active .options-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.25rem;
+  }
+
+  .game-active .option-btn {
+    padding: 0.4rem;
+    font-size: 0.78rem;
+  }
+
+  .game-active .icon-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 0.95rem;
+  }
+}
