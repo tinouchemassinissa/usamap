@@ -69,10 +69,11 @@ function App() {
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [studyData, setStudyData] = useState(null); // Advanced Study Guide Data
   const [mapView, setMapView] = useState(DEFAULT_VIEW);
+  const [correctAnswer, setCorrectAnswer] = useState(null);
+  const [statusMessage, setStatusMessage] = useState("");
 
   const timerRef = useRef(null);
-  const audioRef = useRef(null);
-  const anthemRef = useRef(null);
+  const scoreRef = useRef(0);
 
   const fetchLeaderboard = async () => {
     try {
@@ -129,6 +130,7 @@ function App() {
   }, [musicPlaying]);
 
   useEffect(() => {
+    scoreRef.current = score;
     if (score > highScore) {
       setHighScore(score);
       localStorage.setItem("usaMapHighScore", score);
@@ -142,7 +144,7 @@ function App() {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timerRef.current);
-            triggerGameOver(0);
+            triggerGameOver(scoreRef.current);
             return 0;
           }
           return prev - 1;
@@ -162,6 +164,7 @@ function App() {
       if (currentMode === 'REVERSE') badgeId = 'geographer';
       if (currentMode === 'CAPITALS') badgeId = 'president';
       if (currentMode === 'TRIVIA') badgeId = 'brainiac';
+      if (currentMode === 'FLAGS') badgeId = 'vexillologist';
       
       if (badgeId && !unlockedBadges.includes(badgeId)) {
         const newBadges = [...unlockedBadges, badgeId];
@@ -190,7 +193,7 @@ function App() {
   };
 
   const startGame = () => {
-    const finalName = playerName.trim() || "Explorer";
+    const finalName = (playerName.trim() || "Explorer").replace(/[<>]/g, "").slice(0, 24);
     setPlayerName(finalName);
     setGameStarted(true);
     setScore(0);
@@ -201,6 +204,8 @@ function App() {
     setGameOver(false);
     setStudyData(null);
     setMapView(DEFAULT_VIEW);
+    setCorrectAnswer(null);
+    setStatusMessage("");
     pickNewTarget({});
     
     // Play Yankee Doodle via audio element
@@ -215,7 +220,7 @@ function App() {
     if (finalScore > 0 && playerName) {
       try {
         await addDoc(collection(db, "usa-map-leaderboard"), {
-          name: playerName,
+          name: playerName.replace(/[<>]/g, "").slice(0, 24),
           score: finalScore,
           mode: mode,
           date: new Date().toISOString()
@@ -267,7 +272,7 @@ function App() {
         anthemMusic.play().catch(e => console.log(e));
       }
       
-      const duration = 50 * 1000;
+      const duration = 3.5 * 1000;
       const animationEnd = Date.now() + duration;
       const interval = setInterval(function() {
         var timeLeft = animationEnd - Date.now();
@@ -280,35 +285,42 @@ function App() {
 
       setTimeout(() => {
         triggerGameOver(score);
-      }, 50000);
+      }, 3500);
       return;
     }
     const randomState = remaining[Math.floor(Math.random() * remaining.length)];
     setTargetState(randomState);
 
     if (mode === 'REVERSE') {
+      setCorrectAnswer(randomState);
       setOptions(generateMultipleChoice(randomState, 'name'));
     } else if (mode === 'FLAGS') {
+      setCorrectAnswer(randomState);
       setOptions(generateMultipleChoice(randomState, 'name'));
     } else if (mode === 'TRIVIA') {
       const types = ['population', 'area', 'capital'];
       const questionType = types[Math.floor(Math.random() * types.length)];
+      const answer = STATE_DATA[randomState][questionType];
+      setCorrectAnswer(answer);
       setTriviaQuestion(`What is the ${questionType} of this state?`);
-      setOptions(generateMultipleChoice(STATE_DATA[randomState][questionType], questionType));
+      setOptions(generateMultipleChoice(answer, questionType));
     }
   };
 
   const handleGuess = (guess) => {
     if (gameOver || currentFact || !gameStarted) return;
-    
-    let isCorrect = false;
-    
-    if (mode === 'REVERSE' || mode === 'FLAGS' || mode === 'TRIVIA') {
-      const isCorrect = (guess === targetState);
-      processAnswer(isCorrect, targetState, null);
-    } else {
-      processAnswer(guess === targetState, targetState, null);
+
+    if (mode === 'TRIVIA') {
+      processAnswer(guess === correctAnswer, targetState, null);
+      return;
     }
+
+    if (mode === 'REVERSE' || mode === 'FLAGS') {
+      processAnswer(guess === targetState, targetState, null);
+      return;
+    }
+
+    processAnswer(guess === targetState, targetState, null);
   };
 
   const handleMapClick = (geo, evt) => {
@@ -394,6 +406,7 @@ function App() {
   const processAnswer = (isCorrect, stateName, evt) => {
     if (isCorrect) {
       playCorrectSound();
+      setStatusMessage(`Correct. ${stateName}.`);
       const newGuessed = { ...guessedStates, [stateName]: "correct" };
       setGuessedStates(newGuessed);
       
@@ -429,6 +442,7 @@ function App() {
 
     } else {
       playIncorrectSound();
+      setStatusMessage("Incorrect. Try again.");
       setStreak(0);
       setGuessedStates(prev => ({ ...prev, [stateName]: "incorrect" }));
       
@@ -529,6 +543,8 @@ function App() {
             placeholder="Enter your name..." 
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
+            maxLength={24}
+            aria-label="Player name"
           />
 
           <h3 style={{ marginTop: '0.5rem' }}>Select Game Mode</h3>
@@ -538,6 +554,15 @@ function App() {
                 key={m.id} 
                 className={`mode-card ${mode === m.id ? 'active' : ''}`}
                 onClick={() => setMode(m.id)}
+                role="button"
+                tabIndex={0}
+                aria-pressed={mode === m.id}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setMode(m.id);
+                  }
+                }}
               >
                 <div className="mode-title">{m.title}</div>
                 <div className="mode-desc">{m.desc}</div>
@@ -608,7 +633,7 @@ function App() {
         </div>
 
         {!gameOver && !currentFact && (
-          <div className="target-state-display">
+          <div className="target-state-display" aria-live="polite">
             <span className="target-label">
               {mode === 'CAPITALS' ? "Find the state where the capital is:" : 
                mode === 'REVERSE' ? "What state is highlighted on the map?" :
@@ -619,10 +644,10 @@ function App() {
             </span>
             <div className="target-name" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               {mode === 'FLAGS' && targetState && STATE_DATA[targetState] && (
-                <img src={`https://flagcdn.com/w160/us-${STATE_DATA[targetState].code}.png`} alt="flag" style={{ width: '120px', borderRadius: '8px', border: '2px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }} />
+                <img src={`https://flagcdn.com/w160/us-${STATE_DATA[targetState].code}.png`} alt={`${targetState} flag`} style={{ width: '120px', borderRadius: '8px', border: '2px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }} />
               )}
               {targetState && STATE_DATA[targetState] && mode !== 'REVERSE' && mode !== 'TRIVIA' && mode !== 'CAPITALS' && mode !== 'FLAGS' && mode !== 'STUDY' && mode !== 'REGIONS' && (
-                <img src={`https://flagcdn.com/w80/us-${STATE_DATA[targetState].code}.png`} alt="flag" style={{ width: '50px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)' }} />
+                <img src={`https://flagcdn.com/w80/us-${STATE_DATA[targetState].code}.png`} alt={`${targetState} flag`} style={{ width: '50px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)' }} />
               )}
               {mode === 'CAPITALS' ? STATE_DATA[targetState]?.capital : 
                mode === 'REVERSE' || mode === 'TRIVIA' || mode === 'FLAGS' ? "???" : 
@@ -632,6 +657,7 @@ function App() {
         )}
       </div>
 
+      <div className="sr-only" aria-live="assertive" aria-atomic="true">{statusMessage}</div>
       <div className="map-container">
         <ComposableMap projection="geoAlbersUsa" className="main-map-svg">
           <defs>
@@ -681,6 +707,15 @@ function App() {
                         geography={geo}
                         className={className}
                         onClick={(evt) => handleMapClickFinal(geo, evt)}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${stateName} state`}
+                        onKeyDown={(evt) => {
+                          if (evt.key === 'Enter' || evt.key === ' ') {
+                            evt.preventDefault();
+                            handleMapClickFinal(geo, evt);
+                          }
+                        }}
                         style={{
                           default: { outline: "none" },
                           hover: { outline: "none" },
@@ -737,7 +772,7 @@ function App() {
             </div>
             <div className="fact-box">
               <div className="fact-title">
-                <img src={`https://flagcdn.com/w40/us-${STATE_DATA[currentFact.state].code}.png`} alt="flag" style={{ borderRadius: '2px' }} />
+                <img src={`https://flagcdn.com/w40/us-${STATE_DATA[currentFact.state].code}.png`} alt={`${currentFact.state} flag`} style={{ borderRadius: '2px' }} />
                 💡 Did you know about {currentFact.state}?
               </div>
               <div className="fact-text">{currentFact.text}</div>
