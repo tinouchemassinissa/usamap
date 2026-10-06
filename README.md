@@ -45,9 +45,12 @@
 - **Per-mode records** for best score, accuracy, streak, wins, and plays.
 
 ### Classroom and privacy
-- **Classroom Mode** keeps a session local and suppresses public leaderboard writes.
-- Optional class label.
-- Exportable local student progress report.
+- **Classroom Mode** keeps classroom gameplay local and suppresses public leaderboard writes.
+- Teachers can define **Class**, **Teacher**, and **Session** names.
+- Each class session records only the games and answer attempts that occur during that lesson.
+- Session status shows games and recorded attempts and can be ended explicitly.
+- **Excel (.xlsx) export** contains three sheets: Session Summary, Games, and Attempts.
+- Excel export is intentionally session-scoped: lifetime mastery, achievements, old sessions, and unrelated local data are not included.
 
 ### Experience
 - Bach's *Air on the G String* focus recording with mute/unmute and a remembered volume setting.
@@ -171,3 +174,10 @@ Region Explorer follows the U.S. Census Bureau's canonical hierarchy:
 - **West** — Mountain, Pacific
 
 The app includes only the 50 states; the District of Columbia is therefore not included in the South Atlantic game group.
+
+
+## Classroom session reports
+
+Classroom Mode uses a separate local session record rather than exporting the learner's full local profile. Starting a class session creates a new session ID and timestamp. Every game played during that active session records the student name, mode, difficulty, result, accuracy, streak, and missed states. Every answer attempt records the target, response, correctness, score/streak after the attempt, and Census Region/Division/FIPS when applicable.
+
+The built-in XLSX writer is dependency-free so classroom reports remain available without loading a spreadsheet library from the network.
