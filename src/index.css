@@ -1331,3 +1331,44 @@ body {
     justify-self: start;
   }
 }
+
+
+.census-legend {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.7rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.census-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #cbd5e1;
+  font-size: 0.72rem;
+}
+
+.census-legend-item i {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 0.2rem;
+  background: #64748b;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.legend-west i { background: #3b82f6; }
+.legend-midwest i { background: #f59e0b; }
+.legend-south i { background: #ef4444; }
+.legend-northeast i { background: #10b981; }
+
+.legend-new-england i { background: #c084fc; }
+.legend-middle-atlantic i { background: #a855f7; }
+.legend-east-north-central i { background: #e7a1a1; }
+.legend-west-north-central i { background: #c97f7f; }
+.legend-south-atlantic i { background: #b9d9b1; }
+.legend-east-south-central i { background: #8fc58a; }
+.legend-west-south-central i { background: #6eae72; }
+.legend-mountain i { background: #86b8c8; }
+.legend-pacific i { background: #afd1dc; }
