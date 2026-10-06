@@ -516,7 +516,7 @@ function App() {
             </div>
           )}
 
-        <div className="glass-panel modal" role="dialog" aria-modal="true">
+        <main className="glass-panel modal">
           <div className="mascot">🦅</div>
           <h1 className="title">USA State Explorer</h1>
           
@@ -554,7 +554,7 @@ function App() {
           <LearningProgress percent={overallMastery} mastered={masteredCount} />
 
           <Leaderboard entries={leaderboard} showMode />
-        </div>
+        </main>
       </div>
       ) : (
       <div className="game-container">
