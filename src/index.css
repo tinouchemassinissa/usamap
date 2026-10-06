@@ -1700,3 +1700,336 @@ body.game-running #root {
     grid-column: auto;
   }
 }
+
+
+/* Responsive application shell — home/dashboard is a page, not a modal. */
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+}
+
+html {
+  min-height: 100%;
+  background: var(--bg-color);
+}
+
+body {
+  min-height: 100dvh;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+.game-wrapper-home {
+  width: 100%;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+.game-container.home-active {
+  width: 100%;
+  min-height: 100dvh;
+  height: auto;
+  justify-content: flex-start !important;
+  align-items: center;
+  padding:
+    max(1rem, env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right))
+    max(2rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+  overflow: visible;
+}
+
+.home-panel {
+  width: min(96vw, 1680px);
+  max-width: none;
+  min-width: 0;
+  max-height: none;
+  overflow: visible;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: clamp(0.85rem, 1.5vw, 1.35rem);
+  margin: 0 auto;
+  padding: clamp(1rem, 2vw, 2rem);
+}
+
+.home-panel > .mascot,
+.home-panel > .title,
+.home-panel > h3,
+.home-panel > .player-input {
+  align-self: center;
+}
+
+.home-panel > .title {
+  text-align: center;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.05;
+}
+
+.home-panel > .mascot {
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+}
+
+.home-panel .player-input {
+  width: min(100%, 420px);
+  max-width: 420px;
+}
+
+.home-panel > div[style*="justify-content: center"] {
+  width: 100%;
+  align-self: center;
+  flex-wrap: wrap;
+}
+
+.home-panel > div[style*="justify-content: center"] .btn-primary {
+  flex: 1 1 220px;
+  max-width: 300px;
+}
+
+.home-panel .mode-groups,
+.home-panel .learning-hub,
+.home-panel .learning-progress,
+.home-panel .leaderboard-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Desktop: use available width instead of a narrow centered card. */
+@media (min-width: 1200px) {
+  .home-panel {
+    width: min(94vw, 1680px);
+  }
+
+  .home-panel .mode-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .home-panel .mode-group:first-child .mode-grid,
+  .home-panel .mode-group:last-child .mode-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .home-panel .learning-hub {
+    padding: 1.1rem 1.25rem;
+  }
+}
+
+/* Laptop / tablet landscape. */
+@media (min-width: 769px) and (max-width: 1199px) {
+  .game-container.home-active {
+    padding-inline: clamp(0.75rem, 2vw, 1.25rem);
+  }
+
+  .home-panel {
+    width: 100%;
+    padding: clamp(0.9rem, 2vw, 1.4rem);
+  }
+
+  .home-panel .mode-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .difficulty-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hub-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tablets and large phones. */
+@media (max-width: 768px) {
+  .game-container.home-active {
+    padding:
+      max(0.65rem, env(safe-area-inset-top))
+      max(0.65rem, env(safe-area-inset-right))
+      max(1.25rem, env(safe-area-inset-bottom))
+      max(0.65rem, env(safe-area-inset-left));
+  }
+
+  .home-panel {
+    width: 100%;
+    border-radius: 0.9rem;
+    padding: 0.9rem;
+    gap: 0.8rem;
+  }
+
+  .home-panel .mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-panel .mode-card {
+    min-width: 0;
+    padding: 0.7rem;
+  }
+
+  .home-panel .mode-title {
+    font-size: 0.95rem;
+  }
+
+  .home-panel .mode-desc {
+    font-size: 0.72rem;
+    line-height: 1.3;
+  }
+
+  .home-panel .hub-status-row {
+    align-items: center;
+  }
+
+  .home-panel .hub-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-panel .hub-split,
+  .home-panel .difficulty-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .home-panel .difficulty-card {
+    min-height: 0;
+  }
+
+  .home-panel .learning-hub {
+    padding: 0.75rem;
+  }
+
+  .home-panel .leaderboard-row {
+    font-size: 0.8rem;
+  }
+
+  .home-panel .icon-btn,
+  .home-active > .icon-btn {
+    width: 44px;
+    height: 44px;
+    top: max(0.65rem, env(safe-area-inset-top));
+    font-size: 1.2rem;
+  }
+
+  .home-active > .about-btn {
+    left: max(0.65rem, env(safe-area-inset-left)) !important;
+  }
+
+  .home-active > .music-toggle {
+    right: max(0.65rem, env(safe-area-inset-right));
+  }
+}
+
+/* Portrait phones: prioritize readable single-column controls. */
+@media (max-width: 520px) {
+  .home-panel {
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .home-panel > .title {
+    font-size: clamp(1.8rem, 9vw, 2.45rem) !important;
+    padding-inline: 2.75rem;
+  }
+
+  .home-panel > .mascot {
+    font-size: 2rem;
+  }
+
+  .home-panel .player-input {
+    width: 100%;
+    max-width: none;
+    font-size: 1rem;
+  }
+
+  .home-panel .mode-grid,
+  .home-panel .hub-split,
+  .home-panel .difficulty-grid,
+  .classroom-field-grid,
+  .classroom-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .home-panel .mode-card {
+    min-height: 0;
+  }
+
+  .home-panel > div[style*="justify-content: center"] {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 0.65rem !important;
+  }
+
+  .home-panel > div[style*="justify-content: center"] .btn-primary {
+    width: 100%;
+    max-width: none;
+  }
+
+  .home-panel .hub-status-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
+  .home-panel .hub-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .home-panel .achievement-grid,
+  .home-panel .record-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .focus-volume-label {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .focus-volume-label > span:last-child {
+    justify-self: end;
+  }
+
+  .learning-progress-row {
+    font-size: 0.78rem;
+    gap: 0.5rem;
+  }
+}
+
+/* Phone landscape: keep controls compact but allow two-column mode selection. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 950px) {
+  .game-container.home-active {
+    padding-block: 0.5rem;
+  }
+
+  .home-panel {
+    width: 98vw;
+    padding: 0.7rem;
+  }
+
+  .home-panel > .mascot {
+    display: none;
+  }
+
+  .home-panel > .title {
+    font-size: 1.7rem !important;
+  }
+
+  .home-panel .mode-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .home-panel .hub-split {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .home-panel .difficulty-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Very wide screens / browser zoom-out: remain proportional to the viewport. */
+@media (min-width: 1800px) {
+  .home-panel {
+    width: 92vw;
+    max-width: 1900px;
+  }
+}
