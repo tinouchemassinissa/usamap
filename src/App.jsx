@@ -96,6 +96,7 @@ function App() {
   const [victoryCelebration, setVictoryCelebration] = useState(false);
 
   const timerRef = useRef(null);
+  const victoryTimeoutRef = useRef(null);
   const scoreRef = useRef(0);
 
   const fetchLeaderboard = async () => {
@@ -141,6 +142,7 @@ function App() {
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (victoryTimeoutRef.current) clearTimeout(victoryTimeoutRef.current);
       stopFocusMusic();
       stopAnthem();
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -243,6 +245,10 @@ function App() {
   };
 
   const triggerGameOver = (finalScore) => {
+    if (victoryTimeoutRef.current) {
+      clearTimeout(victoryTimeoutRef.current);
+      victoryTimeoutRef.current = null;
+    }
     stopFocusMusic();
     stopAnthem();
     setVictoryCelebration(false);
@@ -251,6 +257,10 @@ function App() {
   };
 
   const finishVictoryCelebration = () => {
+    if (victoryTimeoutRef.current) {
+      clearTimeout(victoryTimeoutRef.current);
+      victoryTimeoutRef.current = null;
+    }
     stopAnthem();
     setVictoryCelebration(false);
     triggerGameOver(scoreRef.current);
@@ -271,7 +281,10 @@ function App() {
       playAnthem({
         onEnded: () => triggerGameOver(scoreRef.current),
         onError: () => {
-          window.setTimeout(() => triggerGameOver(scoreRef.current), 5000);
+          victoryTimeoutRef.current = window.setTimeout(
+            () => triggerGameOver(scoreRef.current),
+            5000
+          );
         }
       });
       return;
@@ -283,6 +296,10 @@ function App() {
   };
 
   const returnHome = () => {
+    if (victoryTimeoutRef.current) {
+      clearTimeout(victoryTimeoutRef.current);
+      victoryTimeoutRef.current = null;
+    }
     stopFocusMusic();
     stopAnthem();
     setVictoryCelebration(false);
