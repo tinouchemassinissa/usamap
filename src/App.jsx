@@ -213,7 +213,7 @@ function App() {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timerRef.current);
-            triggerGameOver(scoreRef.current, true);
+            triggerGameOver(scoreRef.current, false);
             return 0;
           }
           return prev - 1;
@@ -300,7 +300,7 @@ function App() {
   const saveToLeaderboard = async (finalScore) => {
     if (classroom.enabled || !COMPETITIVE_MODES.has(mode)) return;
 
-    if (finalScore > 0 && playerName) {
+    if (finalScore > 0) {
       try {
         await addDoc(collection(db, "usa-map-leaderboard"), {
           name: sanitizePlayerName(playerName),
@@ -561,11 +561,15 @@ function App() {
           if (nextLives <= 0) triggerGameOver(scoreRef.current, false);
           return nextLives;
         });
-        setSessionStats((previous) => ({
-          ...previous,
-          attempts: previous.attempts + 1,
-          mistakes: { ...previous.mistakes, [currentState]: (previous.mistakes[currentState] || 0) + 1 },
-        }));
+        setSessionStats((previous) => {
+          const next = {
+            ...previous,
+            attempts: previous.attempts + 1,
+            mistakes: { ...previous.mistakes, [currentState]: (previous.mistakes[currentState] || 0) + 1 },
+          };
+          sessionStatsRef.current = next;
+          return next;
+        });
         return;
       }
 
@@ -577,12 +581,16 @@ function App() {
       setScore((previous) => previous + points);
       setStreak(newStreak);
       setGuessedStates((previous) => ({ ...previous, [stateName]: 'correct' }));
-      setSessionStats((previous) => ({
-        ...previous,
-        attempts: previous.attempts + 1,
-        correct: previous.correct + 1,
-        bestStreak: Math.max(previous.bestStreak, newStreak),
-      }));
+      setSessionStats((previous) => {
+        const next = {
+          ...previous,
+          attempts: previous.attempts + 1,
+          correct: previous.correct + 1,
+          bestStreak: Math.max(previous.bestStreak, newStreak),
+        };
+        sessionStatsRef.current = next;
+        return next;
+      });
       setLearnerProfile((previous) => {
         const next = recordLearningAttempt(previous, stateName, true);
         localStorage.setItem("usaMapLearnerProfile", JSON.stringify(next));
@@ -935,7 +943,7 @@ function App() {
               {(mode === 'FLAGS' || (mode === 'MIXED' && challengeVariant === 'FLAG')) && targetState && STATE_DATA[targetState] && (
                 <img src={`https://flagcdn.com/w160/us-${STATE_DATA[targetState].code}.png`} alt={`${targetState} flag`} style={{ width: '120px', borderRadius: '8px', border: '2px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }} />
               )}
-              {targetState && STATE_DATA[targetState] && mode !== 'REVERSE' && mode !== 'TRIVIA' && mode !== 'CAPITALS' && mode !== 'FLAGS' && mode !== 'STUDY' && mode !== 'REGIONS' && (
+              {targetState && STATE_DATA[targetState] && mode !== 'REVERSE' && mode !== 'TRIVIA' && mode !== 'CAPITALS' && mode !== 'FLAGS' && mode !== 'STUDY' && mode !== 'REGIONS' && !(mode === 'MIXED' && ['FLAG', 'REGION'].includes(challengeVariant)) && (
                 <img src={`https://flagcdn.com/w80/us-${STATE_DATA[targetState].code}.png`} alt={`${targetState} flag`} style={{ width: '50px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)' }} />
               )}
               {mode === 'JOURNEY' ? journey.destination :
@@ -949,6 +957,16 @@ function App() {
                 Mastery: {Math.round((mastery[targetState] ?? 0) * 100)}% · {learnerProfile.states[targetState]?.mistakes || 0} previous mistakes
               </div>
             )}
+          </div>
+        )}
+        {DIFFICULTY_PROFILES[difficulty].showHints && STATE_DATA[targetState] && mode !== 'FLAGS' && !(mode === 'MIXED' && challengeVariant === 'FLAG') && (
+          <div className="beginner-hint">Hint: {STATE_DATA[targetState].region} · {STATE_DATA[targetState].geography}</div>
+        )}
+        {mode === 'JOURNEY' && journey.path.length > 0 && (
+          <div className="journey-strip" aria-label="Journey progress">
+            <strong>{journey.start}</strong>
+            <span>{journey.path.slice(1, journey.index + 1).map((state) => ' → ' + state).join('')}</span>
+            <span className="journey-destination"> → {journey.destination}</span>
           </div>
         )}
       </div>
@@ -1002,6 +1020,9 @@ function App() {
                     }
                     if (mode === 'JOURNEY' && stateName === journey.destination) {
                       className += ' journey-goal';
+                    }
+                    if (mode === 'JOURNEY' && DIFFICULTY_PROFILES[difficulty].showHints && stateName === correctAnswer) {
+                      className += ' journey-next';
                     }
 
                     if (victoryCelebration) {
@@ -1057,6 +1078,11 @@ function App() {
             <div className="victory-kicker">🇺🇸 50 STATES MASTERED</div>
             <h2>The United States of America</h2>
             <p>{musicEnabled ? "The Star-Spangled Banner · U.S. Navy Band" : "Victory ceremony · music is muted"}</p>
+            <div className="ceremony-stats">
+              <span>{sessionAccuracy}% accuracy</span>
+              <span>Best streak {sessionStats.bestStreak}</span>
+              <span>{Object.keys(sessionStats.mistakes).length} states missed</span>
+            </div>
             <button type="button" className="victory-continue" onClick={finishVictoryCelebration}>
               Continue to final score
             </button>
