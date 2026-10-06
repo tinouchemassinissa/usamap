@@ -390,6 +390,27 @@ function App() {
     localStorage.setItem("usaMapClassroom", JSON.stringify(nextClassroom));
   };
 
+  const exportLearningReport = () => {
+    const report = {
+      product: 'USA State Explorer',
+      className: classroom.className || null,
+      student: sanitizePlayerName(playerName),
+      generatedAt: new Date().toISOString(),
+      difficulty,
+      summary: progressSummary,
+      records,
+      achievements: achievements.filter((item) => item.unlocked).map((item) => item.title),
+      states: learnerProfile.states,
+    };
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'usa-state-explorer-' + sanitizePlayerName(playerName).replace(/\s+/g, '-').toLowerCase() + '-progress.json';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleFocusVolumeChange = (event) => {
     const nextVolume = Number(event.target.value);
     setFocusVolume(nextVolume);
@@ -868,15 +889,8 @@ function App() {
             focusVolume={focusVolume}
             onVolumeChange={handleFocusVolumeChange}
             online={online}
+            onExportReport={exportLearningReport}
           />
-
-          <div className="badges-container">
-            {BADGES.map(b => (
-              <div key={b.id} className={`badge ${unlockedBadges.includes(b.id) ? 'unlocked' : ''}`} title={b.label}>
-                {b.icon}
-              </div>
-            ))}
-          </div>
 
           <LearningProgress percent={overallMastery} mastered={masteredCount} />
 
