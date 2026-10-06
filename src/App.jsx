@@ -59,14 +59,6 @@ const GAME_MODES = {
   REGIONS: { id: 'REGIONS', title: 'Region Explorer', desc: 'Click to learn about US regions! 🧭' }
 };
 
-const BADGES = [
-  { id: 'classic', icon: '🗺️', label: 'Classic Explorer (Score 200+)' },
-  { id: 'speedster', icon: '⏱️', label: 'Speedster (Time Attack 200+)' },
-  { id: 'geographer', icon: '📍', label: 'Geographer (Reverse 200+)' },
-  { id: 'president', icon: '🏛️', label: 'President (Capitals 200+)' },
-  { id: 'brainiac', icon: '🧠', label: 'Brainiac (Trivia 200+)' },
-  { id: 'vexillologist', icon: '🚩', label: 'Vexillologist (Flags 200+)' }
-];
 
 function App() {
   const [playerName, setPlayerName] = useState("");
@@ -93,7 +85,6 @@ function App() {
   
   const [floatingTexts, setFloatingTexts] = useState([]); // Array of floating text objects
 
-  const [unlockedBadges, setUnlockedBadges] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [studyData, setStudyData] = useState(null); // Advanced Study Guide Data
   const [mapView, setMapView] = useState(DEFAULT_VIEW);
@@ -151,9 +142,6 @@ function App() {
     const savedHighScore = localStorage.getItem("usaMapHighScore");
     if (savedHighScore) setHighScore(parseInt(savedHighScore, 10));
     
-    const savedBadges = JSON.parse(localStorage.getItem("usaMapBadges") || "[]");
-    setUnlockedBadges(savedBadges);
-
     const savedMastery = JSON.parse(localStorage.getItem("usaMapMastery") || "{}");
     const savedLearner = JSON.parse(localStorage.getItem("usaMapLearnerProfile") || "{}");
     setLearnerProfile(normalizeLearnerProfile(savedLearner, STATE_NAMES, savedMastery));
@@ -204,7 +192,6 @@ function App() {
       setHighScore(score);
       localStorage.setItem("usaMapHighScore", score);
     }
-    checkBadges(score, mode);
   }, [score, highScore, mode]);
 
   useEffect(() => {
@@ -235,25 +222,6 @@ function App() {
       setMapView(DEFAULT_VIEW);
     }
   }, [gameStarted, mode, targetState]);
-
-  const checkBadges = (currentScore, currentMode) => {
-    if (currentScore >= 200) {
-      let badgeId = '';
-      if (currentMode === 'CLASSIC') badgeId = 'classic';
-      if (currentMode === 'TIME_ATTACK') badgeId = 'speedster';
-      if (currentMode === 'REVERSE') badgeId = 'geographer';
-      if (currentMode === 'CAPITALS') badgeId = 'president';
-      if (currentMode === 'TRIVIA') badgeId = 'brainiac';
-      if (currentMode === 'FLAGS') badgeId = 'vexillologist';
-      
-      if (badgeId && !unlockedBadges.includes(badgeId)) {
-        const newBadges = [...unlockedBadges, badgeId];
-        setUnlockedBadges(newBadges);
-        localStorage.setItem("usaMapBadges", JSON.stringify(newBadges));
-        celebrate({ particleCount: 150, spread: 80, origin: { y: 0.3 }, colors: ['#facc15'] });
-      }
-    }
-  };
 
   const startGame = () => {
     const finalName = sanitizePlayerName(playerName);
