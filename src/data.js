@@ -1,4 +1,7 @@
-export const STATE_DATA = {
+import { CENSUS_STATE_GEOGRAPHY } from './censusGeography';
+import { OFFICIAL_DATA_SOURCES, POPULATION_2025, formatPopulation, populationQuickFactsUrl } from './officialStateData';
+
+const BASE_STATE_DATA = {
   "Alabama": {  code: "al", capital: "Montgomery", population: "5 Million", area: "52,420 sq mi", fact: "The first rocket to put humans on the moon was built here!" , statehood: "Dec 14, 1819", geography: "Gulf Coastal Plain" , region: "South"},
   "Alaska": {  code: "ak", capital: "Juneau", population: "730,000", area: "663,268 sq mi", fact: "It's the largest state and has over 3 million lakes!" , statehood: "Jan 3, 1959", geography: "Mountains & Tundra" , region: "West"},
   "Arizona": {  code: "az", capital: "Phoenix", population: "7.1 Million", area: "113,990 sq mi", fact: "Home to the massive and beautiful Grand Canyon!" , statehood: "Feb 14, 1912", geography: "Desert & Canyons" , region: "West"},
@@ -50,3 +53,50 @@ export const STATE_DATA = {
   "Wisconsin": {  code: "wi", capital: "Madison", population: "5.8 Million", area: "65,496 sq mi", fact: "Produces more cheese than any other state! 🧀" , statehood: "May 29, 1848", geography: "Great Lakes Lowlands" , region: "Midwest"},
   "Wyoming": {  code: "wy", capital: "Cheyenne", population: "578,000", area: "97,813 sq mi", fact: "The state with the lowest population, but home to Yellowstone National Park!" , statehood: "Jul 10, 1890", geography: "Rocky Mountains" , region: "West"}
 };
+
+
+export const STATE_DATA = Object.fromEntries(
+  Object.entries(BASE_STATE_DATA).map(([stateName, data]) => {
+    const census = CENSUS_STATE_GEOGRAPHY[stateName];
+    const populationValue = POPULATION_2025[stateName];
+    return [
+      stateName,
+      {
+        ...data,
+        region: census?.region || data.region,
+        division: census?.division || null,
+        fips: census?.fips || null,
+        population: populationValue ? formatPopulation(populationValue) : data.population,
+        populationValue: populationValue || null,
+        populationYear: 2025,
+        sources: {
+          censusGeography: OFFICIAL_DATA_SOURCES.censusRegions,
+          population: populationValue
+            ? {
+                ...OFFICIAL_DATA_SOURCES.censusPopulation2025,
+                url: populationQuickFactsUrl(data.code),
+              }
+            : null,
+          area: OFFICIAL_DATA_SOURCES.censusArea,
+          statehood: OFFICIAL_DATA_SOURCES.nationalArchives,
+          landmarkDirectory: {
+            ...OFFICIAL_DATA_SOURCES.npsLandmarks,
+            url: 'https://www.nps.gov/state/' + data.code + '/index.htm',
+          },
+        },
+        audit: {
+          censusRegion: 'verified',
+          censusDivision: 'verified',
+          fips: 'verified',
+          population: populationValue ? 'verified-v2025' : 'pending',
+          area: 'census-source-attached',
+          statehood: 'source-attached-manual-review-pending',
+          fact: 'manual-review-pending',
+          nickname: 'not-yet-added',
+          landmark: 'not-yet-added',
+          stateSymbols: 'not-yet-added',
+        },
+      },
+    ];
+  })
+);
