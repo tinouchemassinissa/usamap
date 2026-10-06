@@ -89,6 +89,7 @@ export default function StateDossier({ stateName, data, stats, onClose }) {
           <h3>Official sources</h3>
           <div className="dossier-source-grid">
             <SourceLink source={data.sources?.censusGeography} label="Census region & division" />
+            <SourceLink source={data.sources?.studentFacts} label="Student facts & state symbols" />
             <SourceLink source={data.sources?.population} label="Population estimate" />
             <SourceLink source={data.sources?.area} label="Area measurement" />
             <SourceLink source={data.sources?.landmarkDirectory} label="National Park Service sites" />
