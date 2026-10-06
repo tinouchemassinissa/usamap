@@ -7,6 +7,9 @@ import { playCorrectSound, playIncorrectSound, playVictorySound } from './audio'
 import { calculatePoints, generateMultipleChoice, isAnswerCorrect, sanitizePlayerName, selectWeightedState, updateMasteryScore } from './game/gameLogic';
 import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from './firebase';
+import Leaderboard from './components/Leaderboard';
+import LearningProgress from './components/LearningProgress';
+import ModeSelector from './components/ModeSelector';
 import './index.css';
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
@@ -507,27 +510,7 @@ function App() {
           />
 
           <h3 style={{ marginTop: '0.5rem' }}>Select Game Mode</h3>
-          <div className="mode-grid">
-            {Object.values(GAME_MODES).map(m => (
-              <div 
-                key={m.id} 
-                className={`mode-card ${mode === m.id ? 'active' : ''}`}
-                onClick={() => setMode(m.id)}
-                role="button"
-                tabIndex={0}
-                aria-pressed={mode === m.id}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setMode(m.id);
-                  }
-                }}
-              >
-                <div className="mode-title">{m.title}</div>
-                <div className="mode-desc">{m.desc}</div>
-              </div>
-            ))}
-          </div>
+          <ModeSelector modes={GAME_MODES} value={mode} onChange={setMode} />
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
             <button className="btn-primary" onClick={startGame}>
@@ -547,27 +530,9 @@ function App() {
             ))}
           </div>
 
-          <div className="learning-progress" aria-label={`Learning mastery ${overallMastery} percent; ${masteredCount} of 50 states mastered`}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '0.9rem' }}>
-              <span>Learning mastery</span>
-              <strong>{overallMastery}% · {masteredCount}/50 mastered</strong>
-            </div>
-            <div className="progress-track">
-              <div className="progress-fill" style={{ width: `${overallMastery}%` }} />
-            </div>
-          </div>
+          <LearningProgress percent={overallMastery} mastered={masteredCount} />
 
-          {leaderboard.length > 0 && (
-            <div style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', width: '100%' }}>
-              <h3 style={{ color: '#facc15', marginBottom: '0.5rem' }}>🌍 Global Leaderboard</h3>
-              {leaderboard.map((entry, i) => (
-                <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '0.2rem 0' }}>
-                  <span>{i + 1}. {entry.name} <span style={{opacity:0.5}}>({entry.mode})</span></span>
-                  <span style={{ fontWeight: 'bold' }}>{entry.score} pts</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <Leaderboard entries={leaderboard} showMode />
         </div>
       </div>
       ) : (
@@ -816,17 +781,7 @@ function App() {
               <span className="stat-value" style={{ fontSize: '3rem' }}>⭐ {score}</span>
             </div>
             
-            {leaderboard.length > 0 && (
-              <div style={{ margin: '1rem 0', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', width: '100%' }}>
-                <h3 style={{ color: '#facc15', marginBottom: '0.5rem' }}>🌍 Top Players</h3>
-                {leaderboard.slice(0,3).map((entry, i) => (
-                  <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '0.2rem 0' }}>
-                    <span>{i + 1}. {entry.name}</span>
-                    <span style={{ fontWeight: 'bold' }}>{entry.score} pts</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Leaderboard entries={leaderboard} title="🌍 Top Players" limit={3} />
 
             <button className="btn-primary" onClick={() => setGameStarted(false)}>
               Back to Menu ↩️
