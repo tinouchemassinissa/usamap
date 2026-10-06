@@ -1,9 +1,9 @@
 <div align="center">
   <img src="public/pwa-192x192.png" alt="USA State Explorer Icon" width="120" />
-  
+
   # 🦅 USA State Explorer
 
-  **An interactive, offline-capable educational game designed to make learning US Geography fun for kids and adults alike!**
+  **An interactive PWA for learning U.S. states, capitals, flags, regions, and geography through play and adaptive practice.**
 
   [![Live Demo](https://img.shields.io/badge/Play_Now-Live_Demo-success?style=for-the-badge&logo=vercel)](https://findthestate.vercel.app/)
   [![PWA Ready](https://img.shields.io/badge/PWA-Ready-blue?style=for-the-badge)](https://findthestate.vercel.app/)
@@ -11,56 +11,98 @@
 
 ---
 
-## 🌟 Features
+## Features
 
-- **🎮 6 Interactive Game Modes:**
-  - **Classic:** Find the highlighted state on the map.
-  - **Reverse:** The map highlights a state, and you must pick its name.
-  - **Capitals:** Identify the state based on its capital city.
-  - **Trivia:** Answer a fun geographical fact to find the state!
-  - **Flags:** Identify the state based on its official flag.
-  - **Study Guide / Region Explorer:** Relax, click around, and learn about the states and regions at your own pace.
-- **🌍 Global Leaderboard:** Compete with friends and family! Top scores are synchronized in real-time via Firebase.
-- **📲 Progressive Web App (PWA):** Install it directly to your iOS or Android home screen. Fully playable offline!
-- **🏅 Achievement Badges:** Unlock special badges for mastering different modes and achieving high scores.
-- **🎨 Modern UI/UX:** Stunning glassmorphism design, colorful maps, and satisfying victory animations.
+- **Classic** — find the named state on the map.
+- **Time Attack** — score as much as possible in 60 seconds.
+- **Adaptive Practice** — state selection is weighted toward weaker mastery.
+- **Reverse** — identify a highlighted state.
+- **Capitals** — find the state from its capital.
+- **Trivia** — answer population, area, and capital questions.
+- **Flags** — identify a state from its flag.
+- **Study Guide** — inspect state facts and reference information.
+- **Region Explorer** — learn the four major U.S. regions.
+- **Persistent mastery tracking** stored locally on the device.
+- **Achievement badges** and high-score tracking.
+- **Global leaderboard** for competitive modes.
+- **Installable PWA** with runtime caching for state flags, map topology, and fonts.
+- **Keyboard-accessible map controls**, screen-reader status feedback, browser zoom support, and reduced-motion handling.
 
-## 🛠️ Tech Stack
+> Offline note: after the required assets have been loaded and cached at least once, the core game remains usable without a network connection. The online leaderboard and external research links naturally require connectivity.
 
-- **Frontend:** React, Vite, CSS (Glassmorphism)
-- **Map Rendering:** `react-simple-maps`, `d3-geo`, TopoJSON
-- **Backend:** Firebase Firestore (for Global Leaderboard)
-- **PWA:** `vite-plugin-pwa`, Workbox (offline caching)
+## Tech stack
 
-## 🚀 Getting Started Locally
+- React 19
+- Vite 8
+- react-simple-maps / d3-geo
+- Firebase Firestore
+- vite-plugin-pwa / Workbox
+- Node built-in test runner
 
-If you want to run this project on your own machine:
+## Local development
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/tinouchemassinissa/usamap.git
-   cd usamap
-   ```
+```bash
+git clone https://github.com/tinouchemassinissa/usamap.git
+cd usamap
+npm ci
+cp .env.example .env
+npm run dev
+```
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+Populate the Firebase client configuration in `.env` before using the leaderboard.
 
-3. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
+### Verification
 
-4. **Build for production:**
-   ```bash
-   npm run build
-   ```
+```bash
+npm run lint
+npm test
+npm run build
+```
 
-## 👨‍💻 Author
+The same checks run in GitHub Actions for pull requests and pushes to `master`.
 
-Created with passion by **Massinissa TINOUCHE**  
-📍 San Jose, CA USA
+## Firebase leaderboard security
+
+The repository includes `firestore.rules` and `firebase.json`. The rules:
+
+- allow public reads of leaderboard entries;
+- validate the allowed fields and player-name length;
+- reject unsupported game modes and implausibly large scores;
+- prevent client-side update/delete operations;
+- deny access to undeclared Firestore collections.
+
+Deploy the rules with the Firebase CLI for the target Firebase project:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+Firebase client configuration is intentionally provided through environment variables. The real `.env` file is ignored by Git and `.env.example` contains variable names only.
+
+> These rules reduce abuse but do not cryptographically prove that a score was earned through normal gameplay. A fully trusted competitive leaderboard would require server-side score verification or another trusted attestation path.
+
+## Project structure
+
+```text
+src/
+├── App.jsx
+├── audio.js
+├── data.js
+├── firebase.js
+├── game/
+│   ├── gameLogic.js
+│   └── gameLogic.test.mjs
+└── index.css
+
+.github/workflows/ci.yml
+firestore.rules
+firebase.json
+```
+
+## Author
+
+Created by **Massinissa TINOUCHE**.
 
 ---
-*If you like this project, feel free to give it a ⭐!*
+
+Contributions and bug reports are welcome through GitHub.

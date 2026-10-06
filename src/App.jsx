@@ -3,9 +3,13 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 're
 import { geoCentroid } from 'd3-geo';
 import confetti from 'canvas-confetti';
 import { STATE_DATA } from './data';
-import { playCorrectSound, playIncorrectSound } from './audio';
+import { playCorrectSound, playIncorrectSound, playVictorySound } from './audio';
+import { calculatePoints, generateMultipleChoice, isAnswerCorrect, sanitizePlayerName, selectWeightedState, updateMasteryScore } from './game/gameLogic';
 import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from './firebase';
+import Leaderboard from './components/Leaderboard';
+import LearningProgress from './components/LearningProgress';
+import ModeSelector from './components/ModeSelector';
 import './index.css';
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
@@ -18,10 +22,27 @@ const REGION_VIEWS = {
   "South": { center: [-88, 30], zoom: 1.6 }
 };
 const DEFAULT_VIEW = { center: [-96, 38], zoom: 1 };
+const MOBILE_NORTHEAST_STATES = new Set([
+  'Connecticut',
+  'Delaware',
+  'Massachusetts',
+  'Maryland',
+  'New Hampshire',
+  'New Jersey',
+  'Rhode Island',
+  'Vermont'
+]);
+const COMPETITIVE_MODES = new Set(['CLASSIC', 'TIME_ATTACK', 'REVERSE', 'CAPITALS', 'TRIVIA', 'FLAGS']);
+
+const celebrate = (options) => {
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  confetti(options);
+};
 
 const GAME_MODES = {
   CLASSIC: { id: 'CLASSIC', title: 'Classic', desc: 'Find the state on the map.' },
   TIME_ATTACK: { id: 'TIME_ATTACK', title: 'Time Attack', desc: '60 seconds. Go fast!' },
+  ADAPTIVE: { id: 'ADAPTIVE', title: 'Adaptive Practice', desc: 'Weak states appear more often as you learn.' },
   REVERSE: { id: 'REVERSE', title: 'Reverse', desc: 'Map highlights a state. Pick its name.' },
   CAPITALS: { id: 'CAPITALS', title: 'Capitals', desc: 'Find the state by its Capital.' },
   TRIVIA: { id: 'TRIVIA', title: 'Trivia', desc: 'State is highlighted. Answer a fact!' },
@@ -66,13 +87,14 @@ function App() {
 
   const [unlockedBadges, setUnlockedBadges] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
-  const [musicPlaying, setMusicPlaying] = useState(false);
   const [studyData, setStudyData] = useState(null); // Advanced Study Guide Data
   const [mapView, setMapView] = useState(DEFAULT_VIEW);
+  const [correctAnswer, setCorrectAnswer] = useState(null);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [mastery, setMastery] = useState({});
 
   const timerRef = useRef(null);
-  const audioRef = useRef(null);
-  const anthemRef = useRef(null);
+  const scoreRef = useRef(0);
 
   const fetchLeaderboard = async () => {
     try {
@@ -107,28 +129,19 @@ function App() {
     const savedBadges = JSON.parse(localStorage.getItem("usaMapBadges") || "[]");
     setUnlockedBadges(savedBadges);
 
+    const savedMastery = JSON.parse(localStorage.getItem("usaMapMastery") || "{}");
+    setMastery(savedMastery);
+
     fetchLeaderboard();
-
-    const bgMusic = document.getElementById('bg-music');
-    const anthemMusic = document.getElementById('anthem-audio');
-
-    if (bgMusic) bgMusic.volume = 0.05;
-    if (anthemMusic) {
-      anthemMusic.volume = 0.08;
-      anthemMusic.onended = () => {
-        if (musicPlaying && bgMusic) {
-          bgMusic.play().catch(e => console.log(e));
-        }
-      };
-    }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, [musicPlaying]);
+  }, []);
 
   useEffect(() => {
+    scoreRef.current = score;
     if (score > highScore) {
       setHighScore(score);
       localStorage.setItem("usaMapHighScore", score);
@@ -142,7 +155,7 @@ function App() {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timerRef.current);
-            triggerGameOver(0);
+            triggerGameOver(scoreRef.current);
             return 0;
           }
           return prev - 1;
@@ -154,6 +167,17 @@ function App() {
     return () => clearInterval(timerRef.current);
   }, [gameStarted, gameOver, currentFact, mode]);
 
+  useEffect(() => {
+    if (!gameStarted || mode === 'REGIONS' || mode === 'STUDY') return;
+
+    const isMobile = window.matchMedia?.('(max-width: 768px)').matches;
+    if (isMobile && MOBILE_NORTHEAST_STATES.has(targetState)) {
+      setMapView(REGION_VIEWS.Northeast);
+    } else {
+      setMapView(DEFAULT_VIEW);
+    }
+  }, [gameStarted, mode, targetState]);
+
   const checkBadges = (currentScore, currentMode) => {
     if (currentScore >= 200) {
       let badgeId = '';
@@ -162,35 +186,19 @@ function App() {
       if (currentMode === 'REVERSE') badgeId = 'geographer';
       if (currentMode === 'CAPITALS') badgeId = 'president';
       if (currentMode === 'TRIVIA') badgeId = 'brainiac';
+      if (currentMode === 'FLAGS') badgeId = 'vexillologist';
       
       if (badgeId && !unlockedBadges.includes(badgeId)) {
         const newBadges = [...unlockedBadges, badgeId];
         setUnlockedBadges(newBadges);
         localStorage.setItem("usaMapBadges", JSON.stringify(newBadges));
-        confetti({ particleCount: 150, spread: 80, origin: { y: 0.3 }, colors: ['#facc15'] });
+        celebrate({ particleCount: 150, spread: 80, origin: { y: 0.3 }, colors: ['#facc15'] });
       }
     }
-  };
-
-  const toggleMusic = () => {
-    const bgMusic = document.getElementById('bg-music');
-    const anthemMusic = document.getElementById('anthem-audio');
-    
-    if (musicPlaying) {
-      if (bgMusic) bgMusic.pause();
-      if (anthemMusic) anthemMusic.pause();
-    } else {
-      if (anthemMusic && anthemMusic.currentTime > 0 && !anthemMusic.ended) {
-        anthemMusic.play().catch(e => console.log(e));
-      } else if (bgMusic) {
-        bgMusic.play().catch(e => console.log(e));
-      }
-    }
-    setMusicPlaying(!musicPlaying);
   };
 
   const startGame = () => {
-    const finalName = playerName.trim() || "Explorer";
+    const finalName = sanitizePlayerName(playerName);
     setPlayerName(finalName);
     setGameStarted(true);
     setScore(0);
@@ -201,21 +209,19 @@ function App() {
     setGameOver(false);
     setStudyData(null);
     setMapView(DEFAULT_VIEW);
+    setCorrectAnswer(null);
+    setStatusMessage("");
     pickNewTarget({});
-    
-    // Play Yankee Doodle via audio element
-    const bgMusic = document.getElementById('bg-music');
-    if (bgMusic) {
-      bgMusic.currentTime = 0;
-      bgMusic.play().then(() => setMusicPlaying(true)).catch(e => console.log("Audio block:", e));
-    }
+
   };
 
   const saveToLeaderboard = async (finalScore) => {
+    if (!COMPETITIVE_MODES.has(mode)) return;
+
     if (finalScore > 0 && playerName) {
       try {
         await addDoc(collection(db, "usa-map-leaderboard"), {
-          name: playerName,
+          name: sanitizePlayerName(playerName),
           score: finalScore,
           mode: mode,
           date: new Date().toISOString()
@@ -232,18 +238,6 @@ function App() {
     saveToLeaderboard(finalScore);
   };
 
-  const generateMultipleChoice = (correctAnswer, type) => {
-    const opts = new Set([correctAnswer]);
-    while(opts.size < 4) {
-      const randState = STATE_NAMES[Math.floor(Math.random() * STATE_NAMES.length)];
-      if (type === 'name') opts.add(randState);
-      else if (type === 'population') opts.add(STATE_DATA[randState].population);
-      else if (type === 'area') opts.add(STATE_DATA[randState].area);
-      else if (type === 'capital') opts.add(STATE_DATA[randState].capital);
-    }
-    return Array.from(opts).sort(() => Math.random() - 0.5);
-  };
-
   const pickNewTarget = (currentGuessed) => {
     if (mode === 'STUDY') {
       setTargetState("Click any state to learn! 📚");
@@ -255,88 +249,73 @@ function App() {
       return;
     }
 
-    const remaining = STATE_NAMES.filter(s => currentGuessed[s] !== "correct");
-    if (remaining.length === 0) {
+    const remaining = mode === 'ADAPTIVE'
+      ? STATE_NAMES.filter((state) => state !== targetState)
+      : STATE_NAMES.filter((state) => currentGuessed[state] !== "correct");
+
+    if (mode !== 'ADAPTIVE' && remaining.length === 0) {
       setTargetState("You Win!");
       
-      const anthemMusic = document.getElementById('anthem-audio');
-      const bgMusic = document.getElementById('bg-music');
-      if (bgMusic) bgMusic.pause();
-      if (anthemMusic) {
-        anthemMusic.currentTime = 0;
-        anthemMusic.play().catch(e => console.log(e));
-      }
+      playVictorySound();
       
-      const duration = 50 * 1000;
-      const animationEnd = Date.now() + duration;
-      const interval = setInterval(function() {
-        var timeLeft = animationEnd - Date.now();
-        if (timeLeft <= 0) {
-          return clearInterval(interval);
-        }
-        var particleCount = 50 * (timeLeft / duration);
-        confetti({ startVelocity: 30, spread: 360, ticks: 60, zIndex: 0, particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } });
-      }, 250);
+      if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        const duration = 3.5 * 1000;
+        const animationEnd = Date.now() + duration;
+        const interval = setInterval(function() {
+          const timeLeft = animationEnd - Date.now();
+          if (timeLeft <= 0) {
+            return clearInterval(interval);
+          }
+          const particleCount = 50 * (timeLeft / duration);
+          celebrate({ startVelocity: 30, spread: 360, ticks: 60, zIndex: 0, particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } });
+        }, 250);
+      }
 
       setTimeout(() => {
         triggerGameOver(score);
-      }, 50000);
+      }, 3500);
       return;
     }
-    const randomState = remaining[Math.floor(Math.random() * remaining.length)];
+    const randomState = mode === 'ADAPTIVE'
+      ? selectWeightedState(remaining, mastery)
+      : remaining[Math.floor(Math.random() * remaining.length)];
     setTargetState(randomState);
 
     if (mode === 'REVERSE') {
-      setOptions(generateMultipleChoice(randomState, 'name'));
+      setCorrectAnswer(randomState);
+      setOptions(generateMultipleChoice(randomState, 'name', STATE_DATA));
     } else if (mode === 'FLAGS') {
-      setOptions(generateMultipleChoice(randomState, 'name'));
+      setCorrectAnswer(randomState);
+      setOptions(generateMultipleChoice(randomState, 'name', STATE_DATA));
     } else if (mode === 'TRIVIA') {
       const types = ['population', 'area', 'capital'];
       const questionType = types[Math.floor(Math.random() * types.length)];
+      const answer = STATE_DATA[randomState][questionType];
+      setCorrectAnswer(answer);
       setTriviaQuestion(`What is the ${questionType} of this state?`);
-      setOptions(generateMultipleChoice(STATE_DATA[randomState][questionType], questionType));
+      setOptions(generateMultipleChoice(answer, questionType, STATE_DATA));
     }
   };
 
   const handleGuess = (guess) => {
     if (gameOver || currentFact || !gameStarted) return;
-    
-    let isCorrect = false;
-    
-    if (mode === 'REVERSE' || mode === 'FLAGS' || mode === 'TRIVIA') {
-      const isCorrect = (guess === targetState);
-      processAnswer(isCorrect, targetState, null);
-    } else {
-      processAnswer(guess === targetState, targetState, null);
-    }
-  };
 
-  const handleMapClick = (geo, evt) => {
-    if (gameOver || currentFact || !gameStarted) return;
-    const stateName = geo.properties.name;
-
-    if (mode === 'STUDY') {
-      if (STATE_NAMES.includes(stateName)) {
-        setCurrentFact({
-          state: stateName,
-          text: STATE_DATA[stateName].fact,
-          pointsEarned: 0
-        });
-      }
+    if (mode === 'TRIVIA') {
+      processAnswer(isAnswerCorrect({ mode, guess, targetState, correctAnswer }), targetState, null);
       return;
     }
 
-    if (mode === 'REVERSE' || mode === 'FLAGS' || mode === 'TRIVIA') return; // In these modes, use buttons
-    
-    if (guessedStates[stateName] === "correct" || !STATE_NAMES.includes(stateName)) return;
+    if (mode === 'REVERSE' || mode === 'FLAGS') {
+      processAnswer(isAnswerCorrect({ mode, guess, targetState, correctAnswer }), targetState, null);
+      return;
+    }
 
-    // Pass the click coordinates for the floating combo text
-    handleGuess(stateName, evt);
+    processAnswer(guess === targetState, targetState, null);
   };
 
   const handleGuessMap = (guess, evt) => {
     if (gameOver || currentFact || !gameStarted) return;
-    processAnswer(guess === targetState, guess, evt);
+    processAnswer(guess === targetState, targetState, evt, guess);
   };
 
   const handleMapClickFinal = (geo, evt) => {
@@ -386,21 +365,33 @@ function App() {
 
     if (mode === 'REVERSE' || mode === 'FLAGS' || mode === 'TRIVIA') return;
     
-    if (guessedStates[stateName] === "correct" || !STATE_NAMES.includes(stateName)) return;
+    if ((mode !== 'ADAPTIVE' && guessedStates[stateName] === "correct") || !STATE_NAMES.includes(stateName)) return;
 
     handleGuessMap(stateName, evt);
   };
 
-  const processAnswer = (isCorrect, stateName, evt) => {
+  const processAnswer = (isCorrect, stateName, evt, guessedState = stateName) => {
+    if (STATE_DATA[stateName]) {
+      setMastery((previous) => {
+        const next = {
+          ...previous,
+          [stateName]: updateMasteryScore(previous[stateName] ?? 0, isCorrect),
+        };
+        localStorage.setItem("usaMapMastery", JSON.stringify(next));
+        return next;
+      });
+    }
+
     if (isCorrect) {
       playCorrectSound();
+      setStatusMessage(`Correct. ${stateName}.`);
       const newGuessed = { ...guessedStates, [stateName]: "correct" };
       setGuessedStates(newGuessed);
       
       const newStreak = streak + 1;
       setStreak(newStreak);
       
-      const points = 10 * newStreak;
+      const points = calculatePoints(newStreak);
       const newScore = score + points;
       setScore(newScore);
       if (mode === 'TIME_ATTACK') setTimeLeft(prev => prev + 2);
@@ -414,8 +405,8 @@ function App() {
         setTimeout(() => setFloatingTexts(prev => prev.filter(f => f.id !== id)), 1500);
       }
       
-      confetti({
-        particleCount: 50 + (newStreak * 10),
+      celebrate({
+        particleCount: Math.min(180, 50 + (newStreak * 10)),
         spread: 60,
         origin: { y: 0.8 },
         colors: ['#22c55e', '#ffffff', '#3b82f6', '#facc15']
@@ -429,8 +420,9 @@ function App() {
 
     } else {
       playIncorrectSound();
+      setStatusMessage("Incorrect. Try again.");
       setStreak(0);
-      setGuessedStates(prev => ({ ...prev, [stateName]: "incorrect" }));
+      setGuessedStates(prev => ({ ...prev, [guessedState]: "incorrect" }));
       
       if (mode === 'TIME_ATTACK') {
         setTimeLeft(prev => Math.max(0, prev - 5));
@@ -445,7 +437,7 @@ function App() {
       setTimeout(() => {
         setGuessedStates(prev => {
           const updated = { ...prev };
-          if (updated[stateName] === "incorrect") delete updated[stateName];
+          if (updated[guessedState] === "incorrect") delete updated[guessedState];
           return updated;
         });
       }, 800);
@@ -454,6 +446,13 @@ function App() {
 
   const closeFactAndNext = () => {
     setCurrentFact(null);
+
+    if (mode === 'ADAPTIVE') {
+      setGuessedStates({});
+      pickNewTarget({});
+      return;
+    }
+
     pickNewTarget(guessedStates);
   };
 
@@ -469,24 +468,22 @@ function App() {
     }
   };
 
+  const masteredCount = STATE_NAMES.filter((state) => (mastery[state] ?? 0) >= 0.8).length;
+  const overallMastery = Math.round(
+    STATE_NAMES.reduce((sum, state) => sum + (mastery[state] ?? 0), 0) / STATE_NAMES.length * 100
+  );
+
   return (
     <div className="game-wrapper" style={{ width: '100vw', height: '100vh' }}>
-      {/* Hidden Audio Elements for better browser support - ALWAYS MOUNTED */}
-      <audio id="anthem-audio" src="/anthem.mp3" preload="auto"></audio>
-      <audio id="bg-music" src="/music.mp3" loop preload="auto"></audio>
-
       {!gameStarted ? (
         <div className="game-container" style={{ justifyContent: 'center' }}>
           <button className="icon-btn about-btn" onClick={() => setShowAbout(true)} title="About USA State Explorer" style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 100 }}>
             ℹ️
           </button>
-          <button className="icon-btn music-toggle" onClick={toggleMusic} title="Toggle Music">
-            {musicPlaying ? "🔊" : "🔇"}
-          </button>
 
           {showAbout && (
             <div className="overlay" style={{ zIndex: 2000 }}>
-              <div className="glass-panel modal" style={{ maxWidth: '500px' }}>
+              <div className="glass-panel modal" role="dialog" aria-modal="true" style={{ maxWidth: '500px' }}>
                 <h2 className="title" style={{ fontSize: '2rem', marginBottom: '1rem' }}>About</h2>
                 <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '1.1rem', lineHeight: '1.5' }}>
                   <div><strong>Author:</strong> Massinissa TINOUCHE</div>
@@ -504,7 +501,7 @@ function App() {
 
           {showInstallGuide && (
             <div className="overlay" style={{ zIndex: 2000 }}>
-              <div className="glass-panel modal" style={{ maxWidth: '400px', textAlign: 'left' }}>
+              <div className="glass-panel modal" role="dialog" aria-modal="true" style={{ maxWidth: '400px', textAlign: 'left' }}>
                 <h2 className="title" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>How to Install</h2>
                 <p style={{ marginBottom: '1rem', lineHeight: '1.5' }}>
                   Your browser doesn't support automatic installation. To install this app:
@@ -519,7 +516,7 @@ function App() {
             </div>
           )}
 
-        <div className="glass-panel modal">
+        <main className="glass-panel modal">
           <div className="mascot">🦅</div>
           <h1 className="title">USA State Explorer</h1>
           
@@ -529,21 +526,12 @@ function App() {
             placeholder="Enter your name..." 
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
+            maxLength={24}
+            aria-label="Player name"
           />
 
           <h3 style={{ marginTop: '0.5rem' }}>Select Game Mode</h3>
-          <div className="mode-grid">
-            {Object.values(GAME_MODES).map(m => (
-              <div 
-                key={m.id} 
-                className={`mode-card ${mode === m.id ? 'active' : ''}`}
-                onClick={() => setMode(m.id)}
-              >
-                <div className="mode-title">{m.title}</div>
-                <div className="mode-desc">{m.desc}</div>
-              </div>
-            ))}
-          </div>
+          <ModeSelector modes={GAME_MODES} value={mode} onChange={setMode} />
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
             <button className="btn-primary" onClick={startGame}>
@@ -563,26 +551,15 @@ function App() {
             ))}
           </div>
 
-          {leaderboard.length > 0 && (
-            <div style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', width: '100%' }}>
-              <h3 style={{ color: '#facc15', marginBottom: '0.5rem' }}>🌍 Global Leaderboard</h3>
-              {leaderboard.map((entry, i) => (
-                <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '0.2rem 0' }}>
-                  <span>{i + 1}. {entry.name} <span style={{opacity:0.5}}>({entry.mode})</span></span>
-                  <span style={{ fontWeight: 'bold' }}>{entry.score} pts</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+          <LearningProgress percent={overallMastery} mastered={masteredCount} />
+
+          <Leaderboard entries={leaderboard} showMode />
+        </main>
       </div>
       ) : (
       <div className="game-container">
         <button className="icon-btn home-btn" onClick={() => setGameStarted(false)} title="Back to Menu">
           🏠
-        </button>
-        <button className="icon-btn music-toggle" onClick={toggleMusic} title="Toggle Music">
-          {musicPlaying ? "🔊" : "🔇"}
         </button>
       <div className="header">
         <div className="title-container">
@@ -608,30 +585,37 @@ function App() {
         </div>
 
         {!gameOver && !currentFact && (
-          <div className="target-state-display">
+          <div className="target-state-display" aria-live="polite">
             <span className="target-label">
               {mode === 'CAPITALS' ? "Find the state where the capital is:" : 
                mode === 'REVERSE' ? "What state is highlighted on the map?" :
                mode === 'FLAGS' ? "Which state does this flag belong to?" :
                mode === 'TRIVIA' ? triviaQuestion :
                mode === 'STUDY' ? "Study Guide Mode Active" :
+               mode === 'ADAPTIVE' ? "Adaptive practice — find..." :
                "Can you find..."}
             </span>
             <div className="target-name" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               {mode === 'FLAGS' && targetState && STATE_DATA[targetState] && (
-                <img src={`https://flagcdn.com/w160/us-${STATE_DATA[targetState].code}.png`} alt="flag" style={{ width: '120px', borderRadius: '8px', border: '2px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }} />
+                <img src={`https://flagcdn.com/w160/us-${STATE_DATA[targetState].code}.png`} alt={`${targetState} flag`} style={{ width: '120px', borderRadius: '8px', border: '2px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }} />
               )}
               {targetState && STATE_DATA[targetState] && mode !== 'REVERSE' && mode !== 'TRIVIA' && mode !== 'CAPITALS' && mode !== 'FLAGS' && mode !== 'STUDY' && mode !== 'REGIONS' && (
-                <img src={`https://flagcdn.com/w80/us-${STATE_DATA[targetState].code}.png`} alt="flag" style={{ width: '50px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)' }} />
+                <img src={`https://flagcdn.com/w80/us-${STATE_DATA[targetState].code}.png`} alt={`${targetState} flag`} style={{ width: '50px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)' }} />
               )}
               {mode === 'CAPITALS' ? STATE_DATA[targetState]?.capital : 
                mode === 'REVERSE' || mode === 'TRIVIA' || mode === 'FLAGS' ? "???" : 
                targetState}
             </div>
+            {mode === 'ADAPTIVE' && STATE_DATA[targetState] && (
+              <div style={{ marginTop: '0.6rem', color: '#94a3b8', fontSize: '0.95rem' }}>
+                Mastery: {Math.round((mastery[targetState] ?? 0) * 100)}%
+              </div>
+            )}
           </div>
         )}
       </div>
 
+      <div className="sr-only" aria-live="assertive" aria-atomic="true">{statusMessage}</div>
       <div className="map-container">
         <ComposableMap projection="geoAlbersUsa" className="main-map-svg">
           <defs>
@@ -681,6 +665,15 @@ function App() {
                         geography={geo}
                         className={className}
                         onClick={(evt) => handleMapClickFinal(geo, evt)}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${stateName} state`}
+                        onKeyDown={(evt) => {
+                          if (evt.key === 'Enter' || evt.key === ' ') {
+                            evt.preventDefault();
+                            handleMapClickFinal(geo, evt);
+                          }
+                        }}
                         style={{
                           default: { outline: "none" },
                           hover: { outline: "none" },
@@ -730,14 +723,14 @@ function App() {
 
       {currentFact && (
         <div className="overlay">
-          <div className="glass-panel modal">
+          <div className="glass-panel modal" role="dialog" aria-modal="true">
             <h2 className="title" style={{ fontSize: '2.5rem' }}>Awesome! 🎉</h2>
             <div style={{ color: '#22c55e', fontSize: '1.2rem', fontWeight: 'bold' }}>
               {currentFact.pointsEarned > 0 ? `+${currentFact.pointsEarned} Points!` : "Fact Unlocked! 📚"}
             </div>
             <div className="fact-box">
               <div className="fact-title">
-                <img src={`https://flagcdn.com/w40/us-${STATE_DATA[currentFact.state].code}.png`} alt="flag" style={{ borderRadius: '2px' }} />
+                <img src={`https://flagcdn.com/w40/us-${STATE_DATA[currentFact.state].code}.png`} alt={`${currentFact.state} flag`} style={{ borderRadius: '2px' }} />
                 💡 Did you know about {currentFact.state}?
               </div>
               <div className="fact-text">{currentFact.text}</div>
@@ -751,7 +744,7 @@ function App() {
 
       {studyData && (
         <div className={mode === 'REGIONS' ? 'transparent-overlay' : 'overlay'} style={mode === 'REGIONS' ? { pointerEvents: 'none' } : { alignItems: 'flex-start', paddingTop: '5vh' }}>
-          <div className="glass-panel modal" style={mode === 'REGIONS' ? { position: 'absolute', bottom: '2rem', right: '2rem', width: '380px', maxWidth: '90vw', animation: 'floatUp 0.3s ease-out', pointerEvents: 'auto', padding: '1.5rem' } : { maxWidth: '700px', animation: 'floatUp 0.3s ease-out', pointerEvents: 'auto' }}>
+          <div className="glass-panel modal" role={mode === 'REGIONS' ? 'region' : 'dialog'} aria-modal={mode === 'REGIONS' ? undefined : 'true'} style={mode === 'REGIONS' ? { position: 'absolute', bottom: '2rem', right: '2rem', width: '380px', maxWidth: '90vw', animation: 'floatUp 0.3s ease-out', pointerEvents: 'auto', padding: '1.5rem' } : { maxWidth: '700px', animation: 'floatUp 0.3s ease-out', pointerEvents: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 className="title" style={{ fontSize: mode === 'REGIONS' ? '1.8rem' : '2.5rem', margin: 0 }}>{studyData.stateName}</h2>
               <button onClick={() => {
@@ -799,7 +792,7 @@ function App() {
 
       {gameOver && (
         <div className="overlay">
-          <div className="glass-panel modal">
+          <div className="glass-panel modal" role="dialog" aria-modal="true">
             <div className="mascot">{(mode === 'TIME_ATTACK' ? timeLeft <= 0 : lives <= 0) ? "😢" : "🏆"}</div>
             <h2 className="title" style={{ fontSize: '3.5rem' }}>
               {(mode === 'TIME_ATTACK' ? timeLeft <= 0 : lives <= 0) ? "Game Over" : "You Win!"}
@@ -809,17 +802,7 @@ function App() {
               <span className="stat-value" style={{ fontSize: '3rem' }}>⭐ {score}</span>
             </div>
             
-            {leaderboard.length > 0 && (
-              <div style={{ margin: '1rem 0', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', width: '100%' }}>
-                <h3 style={{ color: '#facc15', marginBottom: '0.5rem' }}>🌍 Top Players</h3>
-                {leaderboard.slice(0,3).map((entry, i) => (
-                  <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '0.2rem 0' }}>
-                    <span>{i + 1}. {entry.name}</span>
-                    <span style={{ fontWeight: 'bold' }}>{entry.score} pts</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Leaderboard entries={leaderboard} title="🌍 Top Players" limit={3} />
 
             <button className="btn-primary" onClick={() => setGameStarted(false)}>
               Back to Menu ↩️

@@ -27,13 +27,34 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /^https:\/\/en\.wikipedia\.org\/api\/rest_v1\/.*/i,
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/us-atlas@3\/states-10m\.json$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'usa-map-topology-cache',
+              expiration: {
+                maxEntries: 2,
+                maxAgeSeconds: 60 * 60 * 24 * 365
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'wikipedia-api-cache',
+              cacheName: 'google-font-stylesheets'
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-font-files',
               expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 30
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 365
               },
               cacheableResponse: {
                 statuses: [0, 200]
