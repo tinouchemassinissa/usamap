@@ -4,7 +4,7 @@ import { geoCentroid } from 'd3-geo';
 import confetti from 'canvas-confetti';
 import { STATE_DATA } from './data';
 import { playCorrectSound, playIncorrectSound } from './audio';
-import { calculatePoints, generateMultipleChoice, isAnswerCorrect, sanitizePlayerName } from './game/gameLogic';
+import { calculatePoints, generateMultipleChoice, isAnswerCorrect, sanitizePlayerName, selectWeightedState, updateMasteryScore } from './game/gameLogic';
 import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from './firebase';
 import './index.css';
@@ -23,6 +23,7 @@ const DEFAULT_VIEW = { center: [-96, 38], zoom: 1 };
 const GAME_MODES = {
   CLASSIC: { id: 'CLASSIC', title: 'Classic', desc: 'Find the state on the map.' },
   TIME_ATTACK: { id: 'TIME_ATTACK', title: 'Time Attack', desc: '60 seconds. Go fast!' },
+  ADAPTIVE: { id: 'ADAPTIVE', title: 'Adaptive Practice', desc: 'Weak states appear more often as you learn.' },
   REVERSE: { id: 'REVERSE', title: 'Reverse', desc: 'Map highlights a state. Pick its name.' },
   CAPITALS: { id: 'CAPITALS', title: 'Capitals', desc: 'Find the state by its Capital.' },
   TRIVIA: { id: 'TRIVIA', title: 'Trivia', desc: 'State is highlighted. Answer a fact!' },
@@ -72,6 +73,7 @@ function App() {
   const [mapView, setMapView] = useState(DEFAULT_VIEW);
   const [correctAnswer, setCorrectAnswer] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
+  const [mastery, setMastery] = useState({});
 
   const timerRef = useRef(null);
   const scoreRef = useRef(0);
@@ -108,6 +110,9 @@ function App() {
     
     const savedBadges = JSON.parse(localStorage.getItem("usaMapBadges") || "[]");
     setUnlockedBadges(savedBadges);
+
+    const savedMastery = JSON.parse(localStorage.getItem("usaMapMastery") || "{}");
+    setMastery(savedMastery);
 
     fetchLeaderboard();
 
@@ -277,7 +282,9 @@ function App() {
       }, 3500);
       return;
     }
-    const randomState = remaining[Math.floor(Math.random() * remaining.length)];
+    const randomState = mode === 'ADAPTIVE'
+      ? selectWeightedState(remaining, mastery)
+      : remaining[Math.floor(Math.random() * remaining.length)];
     setTargetState(randomState);
 
     if (mode === 'REVERSE') {
@@ -393,6 +400,17 @@ function App() {
   };
 
   const processAnswer = (isCorrect, stateName, evt) => {
+    if (STATE_DATA[stateName]) {
+      setMastery((previous) => {
+        const next = {
+          ...previous,
+          [stateName]: updateMasteryScore(previous[stateName] ?? 0.5, isCorrect),
+        };
+        localStorage.setItem("usaMapMastery", JSON.stringify(next));
+        return next;
+      });
+    }
+
     if (isCorrect) {
       playCorrectSound();
       setStatusMessage(`Correct. ${stateName}.`);
@@ -629,6 +647,7 @@ function App() {
                mode === 'FLAGS' ? "Which state does this flag belong to?" :
                mode === 'TRIVIA' ? triviaQuestion :
                mode === 'STUDY' ? "Study Guide Mode Active" :
+               mode === 'ADAPTIVE' ? "Adaptive practice — find..." :
                "Can you find..."}
             </span>
             <div className="target-name" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -642,6 +661,11 @@ function App() {
                mode === 'REVERSE' || mode === 'TRIVIA' || mode === 'FLAGS' ? "???" : 
                targetState}
             </div>
+            {mode === 'ADAPTIVE' && STATE_DATA[targetState] && (
+              <div style={{ marginTop: '0.6rem', color: '#94a3b8', fontSize: '0.95rem' }}>
+                Mastery: {Math.round((mastery[targetState] ?? 0.5) * 100)}%
+              </div>
+            )}
           </div>
         )}
       </div>
