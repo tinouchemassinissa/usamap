@@ -4,12 +4,16 @@ import { geoCentroid } from 'd3-geo';
 import confetti from 'canvas-confetti';
 import { STATE_DATA } from './data';
 import { playCorrectSound, playIncorrectSound, playAnthem, setFocusMusicVolume, startFocusMusic, stopAnthem, stopFocusMusic } from './audio';
-import { calculatePoints, generateMultipleChoice, isAnswerCorrect, sanitizePlayerName, selectWeightedState, updateMasteryScore } from './game/gameLogic';
+import { calculatePoints, generateMultipleChoice, isAnswerCorrect, sanitizePlayerName, shuffle } from './game/gameLogic';
+import { DIFFICULTY_PROFILES, computeAchievements, getDueStates, getMasteryBand, getMistakeReviewStates, getProgressSummary, normalizeLearnerProfile, recordLearningAttempt, recordModeResult, selectLearningState } from './game/learningEngine';
+import { areNeighbors, getNeighbors, journeyStates, shortestJourney } from './game/geography';
 import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from './firebase';
 import Leaderboard from './components/Leaderboard';
 import LearningProgress from './components/LearningProgress';
 import ModeSelector from './components/ModeSelector';
+import LearningHub from './components/LearningHub';
+import StateDossier from './components/StateDossier';
 import './index.css';
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
@@ -32,7 +36,7 @@ const MOBILE_NORTHEAST_STATES = new Set([
   'Rhode Island',
   'Vermont'
 ]);
-const COMPETITIVE_MODES = new Set(['CLASSIC', 'TIME_ATTACK', 'REVERSE', 'CAPITALS', 'TRIVIA', 'FLAGS']);
+const COMPETITIVE_MODES = new Set(['CLASSIC', 'TIME_ATTACK', 'REVERSE', 'CAPITALS', 'TRIVIA', 'FLAGS', 'MIXED']);
 
 const celebrate = (options) => {
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
@@ -42,7 +46,11 @@ const celebrate = (options) => {
 const GAME_MODES = {
   CLASSIC: { id: 'CLASSIC', title: 'Classic', desc: 'Find the state on the map.' },
   TIME_ATTACK: { id: 'TIME_ATTACK', title: 'Time Attack', desc: '60 seconds. Go fast!' },
-  ADAPTIVE: { id: 'ADAPTIVE', title: 'Adaptive Practice', desc: 'Weak states appear more often as you learn.' },
+  ADAPTIVE: { id: 'ADAPTIVE', title: 'Smart Review', desc: 'Spaced repetition prioritizes what is due and weak.' },
+  MISTAKES: { id: 'MISTAKES', title: 'Mistake Review', desc: 'Practice states you have missed before.' },
+  NEIGHBORS: { id: 'NEIGHBORS', title: 'Neighbor Challenge', desc: 'Find a state that shares a land border.' },
+  JOURNEY: { id: 'JOURNEY', title: 'USA Journey', desc: 'Travel state-to-state using only land borders.' },
+  MIXED: { id: 'MIXED', title: 'Mixed Challenge', desc: 'States, capitals, flags, regions, and abbreviations.' },
   REVERSE: { id: 'REVERSE', title: 'Reverse', desc: 'Map highlights a state. Pick its name.' },
   CAPITALS: { id: 'CAPITALS', title: 'Capitals', desc: 'Find the state by its Capital.' },
   TRIVIA: { id: 'TRIVIA', title: 'Trivia', desc: 'State is highlighted. Answer a fact!' },
@@ -51,14 +59,6 @@ const GAME_MODES = {
   REGIONS: { id: 'REGIONS', title: 'Region Explorer', desc: 'Click to learn about US regions! 🧭' }
 };
 
-const BADGES = [
-  { id: 'classic', icon: '🗺️', label: 'Classic Explorer (Score 200+)' },
-  { id: 'speedster', icon: '⏱️', label: 'Speedster (Time Attack 200+)' },
-  { id: 'geographer', icon: '📍', label: 'Geographer (Reverse 200+)' },
-  { id: 'president', icon: '🏛️', label: 'President (Capitals 200+)' },
-  { id: 'brainiac', icon: '🧠', label: 'Brainiac (Trivia 200+)' },
-  { id: 'vexillologist', icon: '🚩', label: 'Vexillologist (Flags 200+)' }
-];
 
 function App() {
   const [playerName, setPlayerName] = useState("");
@@ -85,13 +85,20 @@ function App() {
   
   const [floatingTexts, setFloatingTexts] = useState([]); // Array of floating text objects
 
-  const [unlockedBadges, setUnlockedBadges] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [studyData, setStudyData] = useState(null); // Advanced Study Guide Data
   const [mapView, setMapView] = useState(DEFAULT_VIEW);
   const [correctAnswer, setCorrectAnswer] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
-  const [mastery, setMastery] = useState({});
+  const [learnerProfile, setLearnerProfile] = useState(() => normalizeLearnerProfile({}, STATE_NAMES));
+  const [records, setRecords] = useState({});
+  const [difficulty, setDifficulty] = useState('INTERMEDIATE');
+  const [classroom, setClassroom] = useState({ enabled: false, className: '' });
+  const [online, setOnline] = useState(() => navigator.onLine);
+  const [sessionStats, setSessionStats] = useState({ attempts: 0, correct: 0, bestStreak: 0, mistakes: {} });
+  const [dossierState, setDossierState] = useState(null);
+  const [challengeVariant, setChallengeVariant] = useState('STATE');
+  const [journey, setJourney] = useState({ path: [], index: 0, start: '', destination: '' });
   const [musicEnabled, setMusicEnabled] = useState(true);
   const [focusVolume, setFocusVolume] = useState(0.34);
   const [victoryCelebration, setVictoryCelebration] = useState(false);
@@ -99,6 +106,11 @@ function App() {
   const timerRef = useRef(null);
   const victoryTimeoutRef = useRef(null);
   const scoreRef = useRef(0);
+  const sessionStatsRef = useRef(sessionStats);
+
+  const mastery = Object.fromEntries(
+    STATE_NAMES.map((state) => [state, learnerProfile.states[state]?.mastery || 0])
+  );
 
   const fetchLeaderboard = async () => {
     try {
@@ -130,11 +142,23 @@ function App() {
     const savedHighScore = localStorage.getItem("usaMapHighScore");
     if (savedHighScore) setHighScore(parseInt(savedHighScore, 10));
     
-    const savedBadges = JSON.parse(localStorage.getItem("usaMapBadges") || "[]");
-    setUnlockedBadges(savedBadges);
-
     const savedMastery = JSON.parse(localStorage.getItem("usaMapMastery") || "{}");
-    setMastery(savedMastery);
+    const savedLearner = JSON.parse(localStorage.getItem("usaMapLearnerProfile") || "{}");
+    setLearnerProfile(normalizeLearnerProfile(savedLearner, STATE_NAMES, savedMastery));
+
+    const savedRecords = JSON.parse(localStorage.getItem("usaMapModeRecords") || "{}");
+    setRecords(savedRecords);
+
+    const savedDifficulty = localStorage.getItem("usaMapDifficulty");
+    if (DIFFICULTY_PROFILES[savedDifficulty]) setDifficulty(savedDifficulty);
+
+    const savedClassroom = JSON.parse(localStorage.getItem("usaMapClassroom") || "null");
+    if (savedClassroom) setClassroom(savedClassroom);
+
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     const savedMusicPreference = localStorage.getItem("usaMapMusic");
     if (savedMusicPreference === "off") setMusicEnabled(false);
@@ -153,8 +177,14 @@ function App() {
       stopFocusMusic();
       stopAnthem();
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  useEffect(() => {
+    sessionStatsRef.current = sessionStats;
+  }, [sessionStats]);
 
   useEffect(() => {
     scoreRef.current = score;
@@ -162,7 +192,6 @@ function App() {
       setHighScore(score);
       localStorage.setItem("usaMapHighScore", score);
     }
-    checkBadges(score, mode);
   }, [score, highScore, mode]);
 
   useEffect(() => {
@@ -171,7 +200,7 @@ function App() {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timerRef.current);
-            triggerGameOver(scoreRef.current);
+            triggerGameOver(scoreRef.current, false);
             return 0;
           }
           return prev - 1;
@@ -194,49 +223,52 @@ function App() {
     }
   }, [gameStarted, mode, targetState]);
 
-  const checkBadges = (currentScore, currentMode) => {
-    if (currentScore >= 200) {
-      let badgeId = '';
-      if (currentMode === 'CLASSIC') badgeId = 'classic';
-      if (currentMode === 'TIME_ATTACK') badgeId = 'speedster';
-      if (currentMode === 'REVERSE') badgeId = 'geographer';
-      if (currentMode === 'CAPITALS') badgeId = 'president';
-      if (currentMode === 'TRIVIA') badgeId = 'brainiac';
-      if (currentMode === 'FLAGS') badgeId = 'vexillologist';
-      
-      if (badgeId && !unlockedBadges.includes(badgeId)) {
-        const newBadges = [...unlockedBadges, badgeId];
-        setUnlockedBadges(newBadges);
-        localStorage.setItem("usaMapBadges", JSON.stringify(newBadges));
-        celebrate({ particleCount: 150, spread: 80, origin: { y: 0.3 }, colors: ['#facc15'] });
-      }
-    }
-  };
-
   const startGame = () => {
     const finalName = sanitizePlayerName(playerName);
+    const level = DIFFICULTY_PROFILES[difficulty];
     setPlayerName(finalName);
     setGameStarted(true);
     setScore(0);
     setStreak(0);
-    setLives(3);
-    setTimeLeft(60);
+    setLives(level.lives);
+    setTimeLeft(level.time);
     setGuessedStates({});
     setGameOver(false);
     setStudyData(null);
     setMapView(DEFAULT_VIEW);
     setCorrectAnswer(null);
     setStatusMessage("");
+    setSessionStats({ attempts: 0, correct: 0, bestStreak: 0, mistakes: {} });
+    sessionStatsRef.current = { attempts: 0, correct: 0, bestStreak: 0, mistakes: {} };
+    setJourney({ path: [], index: 0, start: '', destination: '' });
     setVictoryCelebration(false);
     stopAnthem();
     if (musicEnabled) startFocusMusic(focusVolume);
+
+    if (mode === 'JOURNEY') {
+      const candidates = journeyStates();
+      const start = candidates[Math.floor(Math.random() * candidates.length)];
+      let destination = candidates[Math.floor(Math.random() * candidates.length)];
+      let path = shortestJourney(start, destination);
+      while ((destination === start || path.length < 4) && candidates.length > 1) {
+        destination = candidates[Math.floor(Math.random() * candidates.length)];
+        path = shortestJourney(start, destination);
+      }
+      setJourney({ path, index: 0, start, destination });
+      setTargetState(start);
+      setCorrectAnswer(path[1] || destination);
+      setGuessedStates({ [start]: 'correct' });
+      setStatusMessage('Journey started. Move through neighboring states.');
+      return;
+    }
+
     pickNewTarget({});
   };
 
   const saveToLeaderboard = async (finalScore) => {
-    if (!COMPETITIVE_MODES.has(mode)) return;
+    if (classroom.enabled || !COMPETITIVE_MODES.has(mode)) return;
 
-    if (finalScore > 0 && playerName) {
+    if (finalScore > 0) {
       try {
         await addDoc(collection(db, "usa-map-leaderboard"), {
           name: sanitizePlayerName(playerName),
@@ -251,7 +283,7 @@ function App() {
     }
   };
 
-  const triggerGameOver = (finalScore) => {
+  const triggerGameOver = (finalScore, completed = false) => {
     if (victoryTimeoutRef.current) {
       clearTimeout(victoryTimeoutRef.current);
       victoryTimeoutRef.current = null;
@@ -260,6 +292,20 @@ function App() {
     stopAnthem();
     setVictoryCelebration(false);
     setGameOver(true);
+
+    const stats = sessionStatsRef.current;
+    const accuracy = stats.attempts ? Math.round(stats.correct / stats.attempts * 100) : 0;
+    setRecords((previous) => {
+      const next = recordModeResult(previous, mode, {
+        score: finalScore,
+        accuracy,
+        bestStreak: stats.bestStreak,
+        completed,
+      });
+      localStorage.setItem("usaMapModeRecords", JSON.stringify(next));
+      return next;
+    });
+
     saveToLeaderboard(finalScore);
   };
 
@@ -270,7 +316,7 @@ function App() {
     }
     stopAnthem();
     setVictoryCelebration(false);
-    triggerGameOver(scoreRef.current);
+    triggerGameOver(scoreRef.current, true);
   };
 
   const toggleMusic = () => {
@@ -286,10 +332,10 @@ function App() {
 
     if (gameStarted && !gameOver && victoryCelebration) {
       playAnthem({
-        onEnded: () => triggerGameOver(scoreRef.current),
+        onEnded: () => triggerGameOver(scoreRef.current, true),
         onError: () => {
           victoryTimeoutRef.current = window.setTimeout(
-            () => triggerGameOver(scoreRef.current),
+            () => triggerGameOver(scoreRef.current, true),
             5000
           );
         }
@@ -302,11 +348,35 @@ function App() {
     }
   };
 
-  const previewFocusMusic = () => {
-    setMusicEnabled(true);
-    localStorage.setItem("usaMapMusic", "on");
-    startFocusMusic(focusVolume);
-    setStatusMessage("Playing Bach — Air on the G String.");
+  const handleDifficultyChange = (nextDifficulty) => {
+    setDifficulty(nextDifficulty);
+    localStorage.setItem("usaMapDifficulty", nextDifficulty);
+  };
+
+  const handleClassroomChange = (nextClassroom) => {
+    setClassroom(nextClassroom);
+    localStorage.setItem("usaMapClassroom", JSON.stringify(nextClassroom));
+  };
+
+  const exportLearningReport = () => {
+    const report = {
+      product: 'USA State Explorer',
+      className: classroom.className || null,
+      student: sanitizePlayerName(playerName),
+      generatedAt: new Date().toISOString(),
+      difficulty,
+      summary: progressSummary,
+      records,
+      achievements: achievements.filter((item) => item.unlocked).map((item) => item.title),
+      states: learnerProfile.states,
+    };
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'usa-state-explorer-' + sanitizePlayerName(playerName).replace(/\s+/g, '-').toLowerCase() + '-progress.json';
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleFocusVolumeChange = (event) => {
@@ -342,11 +412,25 @@ function App() {
       return;
     }
 
+    const mistakeStates = getMistakeReviewStates(learnerProfile);
+    const reviewPool = mistakeStates.length ? mistakeStates : getDueStates(learnerProfile, STATE_NAMES);
+    const eligibleStates = mode === 'NEIGHBORS'
+      ? STATE_NAMES.filter((state) => getNeighbors(state).length > 0)
+      : mode === 'MISTAKES'
+        ? reviewPool
+        : STATE_NAMES;
     const remaining = mode === 'ADAPTIVE'
-      ? STATE_NAMES.filter((state) => state !== targetState)
-      : STATE_NAMES.filter((state) => currentGuessed[state] !== "correct");
+      ? eligibleStates.filter((state) => state !== targetState)
+      : eligibleStates.filter((state) => currentGuessed[state] !== "correct");
 
     if (mode !== 'ADAPTIVE' && remaining.length === 0) {
+      if (mode === 'MISTAKES' || mode === 'NEIGHBORS') {
+        setTargetState("You Win!");
+        celebrate({ particleCount: 180, spread: 100, origin: { y: 0.5 } });
+        window.setTimeout(() => triggerGameOver(scoreRef.current, true), 1200);
+        return;
+      }
+
       setTargetState("You Win!");
       setVictoryCelebration(true);
       stopFocusMusic();
@@ -373,10 +457,10 @@ function App() {
 
       if (musicEnabled) {
         playAnthem({
-          onEnded: () => triggerGameOver(scoreRef.current),
+          onEnded: () => triggerGameOver(scoreRef.current, true),
           onError: () => {
             victoryTimeoutRef.current = window.setTimeout(
-              () => triggerGameOver(scoreRef.current),
+              () => triggerGameOver(scoreRef.current, true),
               5000
             );
           }
@@ -386,11 +470,25 @@ function App() {
       return;
     }
     const randomState = mode === 'ADAPTIVE'
-      ? selectWeightedState(remaining, mastery)
+      ? selectLearningState(remaining, learnerProfile)
       : remaining[Math.floor(Math.random() * remaining.length)];
     setTargetState(randomState);
 
-    if (mode === 'REVERSE') {
+    if (mode === 'MIXED') {
+      const variants = ['STATE', 'CAPITAL', 'FLAG', 'ABBREVIATION', 'REGION'];
+      const variant = variants[Math.floor(Math.random() * variants.length)];
+      setChallengeVariant(variant);
+      if (variant === 'FLAG') {
+        setCorrectAnswer(randomState);
+        setOptions(generateMultipleChoice(randomState, 'name', STATE_DATA));
+      } else if (variant === 'REGION') {
+        setCorrectAnswer(STATE_DATA[randomState].region);
+        setOptions(shuffle(['West', 'Midwest', 'South', 'Northeast']));
+      } else {
+        setCorrectAnswer(randomState);
+        setOptions([]);
+      }
+    } else if (mode === 'REVERSE') {
       setCorrectAnswer(randomState);
       setOptions(generateMultipleChoice(randomState, 'name', STATE_DATA));
     } else if (mode === 'FLAGS') {
@@ -409,8 +507,8 @@ function App() {
   const handleGuess = (guess) => {
     if (gameOver || currentFact || !gameStarted) return;
 
-    if (mode === 'TRIVIA') {
-      processAnswer(isAnswerCorrect({ mode, guess, targetState, correctAnswer }), targetState, null);
+    if (mode === 'TRIVIA' || mode === 'MIXED') {
+      processAnswer(guess === correctAnswer, targetState, null);
       return;
     }
 
@@ -434,13 +532,76 @@ function App() {
     if (mode === 'STUDY') {
       if (STATE_NAMES.includes(stateName)) {
         setTargetState(stateName);
-        
-        setStudyData({
-           stateName,
-           extract: STATE_DATA[stateName].fact,
-           thumbnail: `https://flagcdn.com/w320/us-${STATE_DATA[stateName].code}.png`,
-           url: `https://www.google.com/search?q=${stateName}+state+history+site:.gov+OR+site:.edu`
+        setDossierState(stateName);
+      }
+      return;
+    }
+
+    if (mode === 'JOURNEY') {
+      const nextState = journey.path[journey.index + 1];
+      if (!nextState) return;
+      const isCorrectStep = stateName === nextState;
+      const currentState = journey.path[journey.index];
+      if (!isCorrectStep) {
+        playIncorrectSound();
+        setLearnerProfile((previous) => {
+          const next = recordLearningAttempt(previous, currentState, false);
+          localStorage.setItem("usaMapLearnerProfile", JSON.stringify(next));
+          return next;
         });
+        setStatusMessage(stateName + ' is not the next state on this route. From ' + currentState + ', look for the highlighted shortest-path neighbor.');
+        setLives((previous) => {
+          const nextLives = previous - 1;
+          if (nextLives <= 0) triggerGameOver(scoreRef.current, false);
+          return nextLives;
+        });
+        setSessionStats((previous) => {
+          const next = {
+            ...previous,
+            attempts: previous.attempts + 1,
+            mistakes: { ...previous.mistakes, [currentState]: (previous.mistakes[currentState] || 0) + 1 },
+          };
+          sessionStatsRef.current = next;
+          return next;
+        });
+        return;
+      }
+
+      playCorrectSound();
+      const nextIndex = journey.index + 1;
+      const reachedDestination = nextIndex === journey.path.length - 1;
+      const newStreak = streak + 1;
+      const points = Math.round(calculatePoints(newStreak) * DIFFICULTY_PROFILES[difficulty].scoreMultiplier);
+      setScore((previous) => previous + points);
+      setStreak(newStreak);
+      setGuessedStates((previous) => ({ ...previous, [stateName]: 'correct' }));
+      setSessionStats((previous) => {
+        const next = {
+          ...previous,
+          attempts: previous.attempts + 1,
+          correct: previous.correct + 1,
+          bestStreak: Math.max(previous.bestStreak, newStreak),
+        };
+        sessionStatsRef.current = next;
+        return next;
+      });
+      setLearnerProfile((previous) => {
+        const next = recordLearningAttempt(previous, stateName, true);
+        localStorage.setItem("usaMapLearnerProfile", JSON.stringify(next));
+        return next;
+      });
+
+      if (reachedDestination) {
+        setJourney((previous) => ({ ...previous, index: nextIndex }));
+        setTargetState('Journey Complete!');
+        setStatusMessage('Journey complete: ' + journey.start + ' to ' + journey.destination + '.');
+        celebrate({ particleCount: 200, spread: 110, origin: { y: 0.55 } });
+        window.setTimeout(() => triggerGameOver(scoreRef.current + points, true), 1200);
+      } else {
+        setJourney((previous) => ({ ...previous, index: nextIndex }));
+        setTargetState(stateName);
+        setCorrectAnswer(journey.path[nextIndex + 1]);
+        setStatusMessage('Good move. Continue toward ' + journey.destination + '.');
       }
       return;
     }
@@ -472,24 +633,40 @@ function App() {
       return;
     }
 
+    if (mode === 'NEIGHBORS') {
+      processAnswer(areNeighbors(targetState, stateName), targetState, evt, stateName);
+      return;
+    }
+
+    if (mode === 'MIXED' && (challengeVariant === 'FLAG' || challengeVariant === 'REGION')) return;
     if (mode === 'REVERSE' || mode === 'FLAGS' || mode === 'TRIVIA') return;
     
-    if ((mode !== 'ADAPTIVE' && guessedStates[stateName] === "correct") || !STATE_NAMES.includes(stateName)) return;
+    if ((mode !== 'ADAPTIVE' && mode !== 'MISTAKES' && guessedStates[stateName] === "correct") || !STATE_NAMES.includes(stateName)) return;
 
     handleGuessMap(stateName, evt);
   };
 
   const processAnswer = (isCorrect, stateName, evt, guessedState = stateName) => {
     if (STATE_DATA[stateName]) {
-      setMastery((previous) => {
-        const next = {
-          ...previous,
-          [stateName]: updateMasteryScore(previous[stateName] ?? 0, isCorrect),
-        };
-        localStorage.setItem("usaMapMastery", JSON.stringify(next));
+      setLearnerProfile((previous) => {
+        const next = recordLearningAttempt(previous, stateName, isCorrect);
+        localStorage.setItem("usaMapLearnerProfile", JSON.stringify(next));
         return next;
       });
     }
+
+    setSessionStats((previous) => {
+      const next = {
+        ...previous,
+        attempts: previous.attempts + 1,
+        correct: previous.correct + (isCorrect ? 1 : 0),
+        mistakes: isCorrect
+          ? previous.mistakes
+          : { ...previous.mistakes, [stateName]: (previous.mistakes[stateName] || 0) + 1 },
+      };
+      sessionStatsRef.current = next;
+      return next;
+    });
 
     if (isCorrect) {
       playCorrectSound();
@@ -499,8 +676,13 @@ function App() {
       
       const newStreak = streak + 1;
       setStreak(newStreak);
+      setSessionStats((previous) => {
+        const next = { ...previous, bestStreak: Math.max(previous.bestStreak, newStreak) };
+        sessionStatsRef.current = next;
+        return next;
+      });
       
-      const points = calculatePoints(newStreak);
+      const points = Math.round(calculatePoints(newStreak) * DIFFICULTY_PROFILES[difficulty].scoreMultiplier);
       const newScore = score + points;
       setScore(newScore);
       if (mode === 'TIME_ATTACK') setTimeLeft(prev => prev + 2);
@@ -577,10 +759,13 @@ function App() {
     }
   };
 
-  const masteredCount = STATE_NAMES.filter((state) => (mastery[state] ?? 0) >= 0.8).length;
-  const overallMastery = Math.round(
-    STATE_NAMES.reduce((sum, state) => sum + (mastery[state] ?? 0), 0) / STATE_NAMES.length * 100
-  );
+  const progressSummary = getProgressSummary(learnerProfile);
+  const masteredCount = progressSummary.mastered;
+  const overallMastery = progressSummary.mastery;
+  const dueStates = getDueStates(learnerProfile, STATE_NAMES);
+  const mistakeReviewStates = getMistakeReviewStates(learnerProfile);
+  const achievements = computeAchievements(learnerProfile, records);
+  const sessionAccuracy = sessionStats.attempts ? Math.round(sessionStats.correct / sessionStats.attempts * 100) : 0;
 
   return (
     <div className="game-wrapper" style={{ width: '100vw', height: '100vh' }}>
@@ -637,7 +822,7 @@ function App() {
             </div>
           )}
 
-        <main className="glass-panel modal">
+        <main className="glass-panel modal home-panel">
           <div className="mascot">🦅</div>
           <h1 className="title">USA State Explorer</h1>
           
@@ -664,33 +849,21 @@ function App() {
             </button>
           </div>
 
-          <div className="focus-audio-panel">
-            <button type="button" className="focus-preview-btn" onClick={previewFocusMusic}>
-              ▶ Play focus music
-            </button>
-            <label className="focus-volume-label">
-              <span>Volume</span>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={focusVolume}
-                onChange={handleFocusVolumeChange}
-                aria-label="Focus music volume"
-              />
-              <span>{Math.round(focusVolume * 100)}%</span>
-            </label>
-            <div className="focus-track-name">Bach · Air on the G String · U.S. Air Force Strings</div>
-          </div>
-
-          <div className="badges-container">
-            {BADGES.map(b => (
-              <div key={b.id} className={`badge ${unlockedBadges.includes(b.id) ? 'unlocked' : ''}`} title={b.label}>
-                {b.icon}
-              </div>
-            ))}
-          </div>
+          <LearningHub
+            difficulty={difficulty}
+            onDifficultyChange={handleDifficultyChange}
+            summary={progressSummary}
+            dueCount={dueStates.length}
+            mistakeCount={mistakeReviewStates.length}
+            achievements={achievements}
+            records={records}
+            classroom={classroom}
+            onClassroomChange={handleClassroomChange}
+            focusVolume={focusVolume}
+            onVolumeChange={handleFocusVolumeChange}
+            online={online}
+            onExportReport={exportLearningReport}
+          />
 
           <LearningProgress percent={overallMastery} mastered={masteredCount} />
 
@@ -737,7 +910,15 @@ function App() {
         {!gameOver && !currentFact && !victoryCelebration && (
           <div className="target-state-display" aria-live="polite">
             <span className="target-label">
-              {mode === 'CAPITALS' ? "Find the state where the capital is:" : 
+              {mode === 'JOURNEY' ? "Travel using the next neighboring state toward:" :
+               mode === 'NEIGHBORS' ? "Find any state that borders:" :
+               mode === 'MISTAKES' ? "Review this state:" :
+               mode === 'MIXED' && challengeVariant === 'CAPITAL' ? "Find the state whose capital is:" :
+               mode === 'MIXED' && challengeVariant === 'FLAG' ? "Which state owns this flag?" :
+               mode === 'MIXED' && challengeVariant === 'ABBREVIATION' ? "Find the state with abbreviation:" :
+               mode === 'MIXED' && challengeVariant === 'REGION' ? "Which region contains the highlighted state?" :
+               mode === 'MIXED' ? "Mixed challenge — find:" :
+               mode === 'CAPITALS' ? "Find the state where the capital is:" : 
                mode === 'REVERSE' ? "What state is highlighted on the map?" :
                mode === 'FLAGS' ? "Which state does this flag belong to?" :
                mode === 'TRIVIA' ? triviaQuestion :
@@ -746,21 +927,33 @@ function App() {
                "Can you find..."}
             </span>
             <div className="target-name" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              {mode === 'FLAGS' && targetState && STATE_DATA[targetState] && (
+              {(mode === 'FLAGS' || (mode === 'MIXED' && challengeVariant === 'FLAG')) && targetState && STATE_DATA[targetState] && (
                 <img src={`https://flagcdn.com/w160/us-${STATE_DATA[targetState].code}.png`} alt={`${targetState} flag`} style={{ width: '120px', borderRadius: '8px', border: '2px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }} />
               )}
-              {targetState && STATE_DATA[targetState] && mode !== 'REVERSE' && mode !== 'TRIVIA' && mode !== 'CAPITALS' && mode !== 'FLAGS' && mode !== 'STUDY' && mode !== 'REGIONS' && (
+              {targetState && STATE_DATA[targetState] && mode !== 'REVERSE' && mode !== 'TRIVIA' && mode !== 'CAPITALS' && mode !== 'FLAGS' && mode !== 'STUDY' && mode !== 'REGIONS' && mode !== 'MIXED' && (
                 <img src={`https://flagcdn.com/w80/us-${STATE_DATA[targetState].code}.png`} alt={`${targetState} flag`} style={{ width: '50px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)' }} />
               )}
-              {mode === 'CAPITALS' ? STATE_DATA[targetState]?.capital : 
-               mode === 'REVERSE' || mode === 'TRIVIA' || mode === 'FLAGS' ? "???" : 
+              {mode === 'JOURNEY' ? journey.destination :
+               mode === 'CAPITALS' || (mode === 'MIXED' && challengeVariant === 'CAPITAL') ? STATE_DATA[targetState]?.capital :
+               mode === 'MIXED' && challengeVariant === 'ABBREVIATION' ? STATE_DATA[targetState]?.code.toUpperCase() :
+               mode === 'REVERSE' || mode === 'TRIVIA' || mode === 'FLAGS' || (mode === 'MIXED' && ['FLAG', 'REGION'].includes(challengeVariant)) ? "???" :
                targetState}
             </div>
-            {mode === 'ADAPTIVE' && STATE_DATA[targetState] && (
+            {(mode === 'ADAPTIVE' || mode === 'MISTAKES') && STATE_DATA[targetState] && (
               <div style={{ marginTop: '0.6rem', color: '#94a3b8', fontSize: '0.95rem' }}>
-                Mastery: {Math.round((mastery[targetState] ?? 0) * 100)}%
+                Mastery: {Math.round((mastery[targetState] ?? 0) * 100)}% · {learnerProfile.states[targetState]?.mistakes || 0} previous mistakes
               </div>
             )}
+          </div>
+        )}
+        {DIFFICULTY_PROFILES[difficulty].showHints && STATE_DATA[targetState] && mode !== 'FLAGS' && !(mode === 'MIXED' && challengeVariant === 'FLAG') && (
+          <div className="beginner-hint">Hint: {STATE_DATA[targetState].region} · {STATE_DATA[targetState].geography}</div>
+        )}
+        {mode === 'JOURNEY' && journey.path.length > 0 && (
+          <div className="journey-strip" aria-label="Journey progress">
+            <strong>{journey.start}</strong>
+            <span>{journey.path.slice(1, journey.index + 1).map((state) => ' → ' + state).join('')}</span>
+            <span className="journey-destination"> → {journey.destination}</span>
           </div>
         )}
       </div>
@@ -801,8 +994,22 @@ function App() {
                       }
                     }
                     
-                    if ((mode === 'REVERSE' || mode === 'TRIVIA') && stateName === targetState && !currentFact) {
+                    if ((mode === 'REVERSE' || mode === 'TRIVIA' || (mode === 'MIXED' && challengeVariant === 'REGION')) && stateName === targetState && !currentFact) {
                       className += " target-highlight";
+                    }
+
+                    if ((mode === 'ADAPTIVE' || mode === 'MISTAKES' || mode === 'STUDY') && STATE_DATA[stateName]) {
+                      className += ' mastery-' + getMasteryBand(learnerProfile.states[stateName]?.mastery || 0);
+                    }
+
+                    if (mode === 'JOURNEY' && journey.path.slice(0, journey.index + 1).includes(stateName)) {
+                      className += ' journey-visited';
+                    }
+                    if (mode === 'JOURNEY' && stateName === journey.destination) {
+                      className += ' journey-goal';
+                    }
+                    if (mode === 'JOURNEY' && DIFFICULTY_PROFILES[difficulty].showHints && stateName === correctAnswer) {
+                      className += ' journey-next';
                     }
 
                     if (victoryCelebration) {
@@ -858,6 +1065,11 @@ function App() {
             <div className="victory-kicker">🇺🇸 50 STATES MASTERED</div>
             <h2>The United States of America</h2>
             <p>{musicEnabled ? "The Star-Spangled Banner · U.S. Navy Band" : "Victory ceremony · music is muted"}</p>
+            <div className="ceremony-stats">
+              <span>{sessionAccuracy}% accuracy</span>
+              <span>Best streak {sessionStats.bestStreak}</span>
+              <span>{Object.keys(sessionStats.mistakes).length} states missed</span>
+            </div>
             <button type="button" className="victory-continue" onClick={finishVictoryCelebration}>
               Continue to final score
             </button>
@@ -872,7 +1084,10 @@ function App() {
         ))}
       </div>
 
-      {!gameOver && !currentFact && !victoryCelebration && (mode === 'REVERSE' || mode === 'TRIVIA' || mode === 'FLAGS') && (
+      {!gameOver && !currentFact && !victoryCelebration && (
+        mode === 'REVERSE' || mode === 'TRIVIA' || mode === 'FLAGS' ||
+        (mode === 'MIXED' && (challengeVariant === 'FLAG' || challengeVariant === 'REGION'))
+      ) && (
         <div className="options-grid">
           {options.map((opt, i) => (
             <button key={i} className="option-btn" onClick={() => handleGuess(opt)}>
@@ -880,6 +1095,15 @@ function App() {
             </button>
           ))}
         </div>
+      )}
+
+      {dossierState && (
+        <StateDossier
+          stateName={dossierState}
+          data={STATE_DATA[dossierState]}
+          stats={learnerProfile.states[dossierState]}
+          onClose={() => setDossierState(null)}
+        />
       )}
 
       {currentFact && (
@@ -958,10 +1182,17 @@ function App() {
             <h2 className="title" style={{ fontSize: '3.5rem' }}>
               {(mode === 'TIME_ATTACK' ? timeLeft <= 0 : lives <= 0) ? "Game Over" : "You Win!"}
             </h2>
-            <div className="stat-box" style={{ margin: '1rem 0' }}>
-              <span className="stat-label">Final Score</span>
-              <span className="stat-value" style={{ fontSize: '3rem' }}>⭐ {score}</span>
+            <div className="victory-summary-grid">
+              <div><span>Final score</span><strong>⭐ {score}</strong></div>
+              <div><span>Accuracy</span><strong>{sessionAccuracy}%</strong></div>
+              <div><span>Best streak</span><strong>{sessionStats.bestStreak}</strong></div>
+              <div><span>States missed</span><strong>{Object.keys(sessionStats.mistakes).length}</strong></div>
             </div>
+            {Object.keys(sessionStats.mistakes).length > 0 && (
+              <div className="review-recommendation">
+                Recommended next: Mistake Review for {Object.keys(sessionStats.mistakes).slice(0, 5).join(', ')}
+              </div>
+            )}
             
             <Leaderboard entries={leaderboard} title="🌍 Top Players" limit={3} />
 

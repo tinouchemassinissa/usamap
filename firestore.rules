@@ -19,7 +19,8 @@ service cloud.firestore {
           'REVERSE',
           'CAPITALS',
           'TRIVIA',
-          'FLAGS'
+          'FLAGS',
+          'MIXED'
         ] &&
         request.resource.data.date is string &&
         request.resource.data.date.size() <= 40;

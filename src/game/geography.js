@@ -1,0 +1,85 @@
+export const STATE_NEIGHBORS = {
+  Alabama: ['Florida', 'Georgia', 'Mississippi', 'Tennessee'],
+  Alaska: [],
+  Arizona: ['California', 'Nevada', 'New Mexico', 'Utah'],
+  Arkansas: ['Louisiana', 'Mississippi', 'Missouri', 'Oklahoma', 'Tennessee', 'Texas'],
+  California: ['Arizona', 'Nevada', 'Oregon'],
+  Colorado: ['Kansas', 'Nebraska', 'New Mexico', 'Oklahoma', 'Utah', 'Wyoming'],
+  Connecticut: ['Massachusetts', 'New York', 'Rhode Island'],
+  Delaware: ['Maryland', 'New Jersey', 'Pennsylvania'],
+  Florida: ['Alabama', 'Georgia'],
+  Georgia: ['Alabama', 'Florida', 'North Carolina', 'South Carolina', 'Tennessee'],
+  Hawaii: [],
+  Idaho: ['Montana', 'Nevada', 'Oregon', 'Utah', 'Washington', 'Wyoming'],
+  Illinois: ['Indiana', 'Iowa', 'Kentucky', 'Missouri', 'Wisconsin'],
+  Indiana: ['Illinois', 'Kentucky', 'Michigan', 'Ohio'],
+  Iowa: ['Illinois', 'Minnesota', 'Missouri', 'Nebraska', 'South Dakota', 'Wisconsin'],
+  Kansas: ['Colorado', 'Missouri', 'Nebraska', 'Oklahoma'],
+  Kentucky: ['Illinois', 'Indiana', 'Missouri', 'Ohio', 'Tennessee', 'Virginia', 'West Virginia'],
+  Louisiana: ['Arkansas', 'Mississippi', 'Texas'],
+  Maine: ['New Hampshire'],
+  Maryland: ['Delaware', 'Pennsylvania', 'Virginia', 'West Virginia'],
+  Massachusetts: ['Connecticut', 'New Hampshire', 'New York', 'Rhode Island', 'Vermont'],
+  Michigan: ['Indiana', 'Ohio', 'Wisconsin'],
+  Minnesota: ['Iowa', 'North Dakota', 'South Dakota', 'Wisconsin'],
+  Mississippi: ['Alabama', 'Arkansas', 'Louisiana', 'Tennessee'],
+  Missouri: ['Arkansas', 'Illinois', 'Iowa', 'Kansas', 'Kentucky', 'Nebraska', 'Oklahoma', 'Tennessee'],
+  Montana: ['Idaho', 'North Dakota', 'South Dakota', 'Wyoming'],
+  Nebraska: ['Colorado', 'Iowa', 'Kansas', 'Missouri', 'South Dakota', 'Wyoming'],
+  Nevada: ['Arizona', 'California', 'Idaho', 'Oregon', 'Utah'],
+  'New Hampshire': ['Maine', 'Massachusetts', 'Vermont'],
+  'New Jersey': ['Delaware', 'New York', 'Pennsylvania'],
+  'New Mexico': ['Arizona', 'Colorado', 'Oklahoma', 'Texas'],
+  'New York': ['Connecticut', 'Massachusetts', 'New Jersey', 'Pennsylvania', 'Vermont'],
+  'North Carolina': ['Georgia', 'South Carolina', 'Tennessee', 'Virginia'],
+  'North Dakota': ['Minnesota', 'Montana', 'South Dakota'],
+  Ohio: ['Indiana', 'Kentucky', 'Michigan', 'Pennsylvania', 'West Virginia'],
+  Oklahoma: ['Arkansas', 'Colorado', 'Kansas', 'Missouri', 'New Mexico', 'Texas'],
+  Oregon: ['California', 'Idaho', 'Nevada', 'Washington'],
+  Pennsylvania: ['Delaware', 'Maryland', 'New Jersey', 'New York', 'Ohio', 'West Virginia'],
+  'Rhode Island': ['Connecticut', 'Massachusetts'],
+  'South Carolina': ['Georgia', 'North Carolina'],
+  'South Dakota': ['Iowa', 'Minnesota', 'Montana', 'Nebraska', 'North Dakota', 'Wyoming'],
+  Tennessee: ['Alabama', 'Arkansas', 'Georgia', 'Kentucky', 'Mississippi', 'Missouri', 'North Carolina', 'Virginia'],
+  Texas: ['Arkansas', 'Louisiana', 'New Mexico', 'Oklahoma'],
+  Utah: ['Arizona', 'Colorado', 'Idaho', 'Nevada', 'Wyoming'],
+  Vermont: ['Massachusetts', 'New Hampshire', 'New York'],
+  Virginia: ['Kentucky', 'Maryland', 'North Carolina', 'Tennessee', 'West Virginia'],
+  Washington: ['Idaho', 'Oregon'],
+  'West Virginia': ['Kentucky', 'Maryland', 'Ohio', 'Pennsylvania', 'Virginia'],
+  Wisconsin: ['Illinois', 'Iowa', 'Michigan', 'Minnesota'],
+  Wyoming: ['Colorado', 'Idaho', 'Montana', 'Nebraska', 'South Dakota', 'Utah'],
+};
+
+export function areNeighbors(a, b) {
+  return STATE_NEIGHBORS[a]?.includes(b) || false;
+}
+
+export function getNeighbors(state) {
+  return [...(STATE_NEIGHBORS[state] || [])];
+}
+
+export function shortestJourney(start, destination) {
+  if (start === destination) return [start];
+  if (!STATE_NEIGHBORS[start] || !STATE_NEIGHBORS[destination]) return [];
+  const queue = [[start]];
+  const visited = new Set([start]);
+
+  while (queue.length) {
+    const path = queue.shift();
+    const current = path[path.length - 1];
+    for (const neighbor of STATE_NEIGHBORS[current]) {
+      if (visited.has(neighbor)) continue;
+      const nextPath = [...path, neighbor];
+      if (neighbor === destination) return nextPath;
+      visited.add(neighbor);
+      queue.push(nextPath);
+    }
+  }
+
+  return [];
+}
+
+export function journeyStates() {
+  return Object.keys(STATE_NEIGHBORS).filter((state) => STATE_NEIGHBORS[state].length > 0);
+}
