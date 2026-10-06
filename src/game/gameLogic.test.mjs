@@ -5,6 +5,8 @@ import {
   generateMultipleChoice,
   isAnswerCorrect,
   sanitizePlayerName,
+  selectWeightedState,
+  updateMasteryScore,
 } from './gameLogic.js';
 
 const data = {
@@ -51,4 +53,18 @@ test('public player names are bounded and sanitized', () => {
 test('streak scoring remains deterministic', () => {
   assert.equal(calculatePoints(1), 10);
   assert.equal(calculatePoints(4), 40);
+});
+
+test('mastery moves toward observed performance', () => {
+  assert.equal(updateMasteryScore(0.5, true), 0.625);
+  assert.equal(updateMasteryScore(0.5, false), 0.375);
+});
+
+test('adaptive selection can prioritize weak states', () => {
+  const state = selectWeightedState(
+    ['Texas', 'California'],
+    { Texas: 0.95, California: 0.1 },
+    () => 0.5,
+  );
+  assert.equal(state, 'California');
 });
