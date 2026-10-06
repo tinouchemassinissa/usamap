@@ -1161,3 +1161,31 @@ body {
   outline: 3px solid #facc15;
   outline-offset: 2px;
 }
+
+
+.home-panel {
+  width: min(1120px, 96vw);
+  max-width: 1120px;
+  align-items: stretch;
+}
+
+.home-panel > .title,
+.home-panel > .mascot,
+.home-panel > h3 {
+  align-self: center;
+}
+
+.home-panel .player-input {
+  align-self: center;
+}
+
+.home-panel > div[style*="justify-content: center"] {
+  align-self: center;
+}
+
+@media (max-width: 768px) {
+  .home-panel {
+    width: 100%;
+    max-width: 100%;
+  }
+}
