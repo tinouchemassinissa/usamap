@@ -11,6 +11,12 @@ export const OFFICIAL_DATA_SOURCES = {
     url: 'https://www.census.gov/quickfacts/',
     yearLabel: 'July 1, 2025 (V2025)',
   },
+  censusStudentFacts: {
+    agency: 'U.S. Census Bureau',
+    title: 'State Facts for Students',
+    url: 'https://www.census.gov/schools/statefacts/',
+    yearLabel: 'Current Statistics in Schools resource',
+  },
   censusArea: {
     agency: 'U.S. Census Bureau',
     title: 'State Area Measurements and Internal Point Coordinates',
