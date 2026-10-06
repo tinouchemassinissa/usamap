@@ -582,3 +582,49 @@ body {
   background: linear-gradient(90deg, #3b82f6, #10b981);
   transition: width 0.35s ease;
 }
+
+
+.mode-card {
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.mode-card .mode-title,
+.mode-card .mode-desc {
+  display: block;
+}
+
+.learning-progress-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.leaderboard-panel {
+  margin-top: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  width: 100%;
+}
+
+.leaderboard-panel h3 {
+  color: #facc15;
+  margin-bottom: 0.5rem;
+}
+
+.leaderboard-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.9rem;
+  padding: 0.2rem 0;
+}
+
+.leaderboard-mode {
+  opacity: 0.55;
+}
