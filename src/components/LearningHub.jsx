@@ -13,6 +13,7 @@ export default function LearningHub({
   focusVolume,
   onVolumeChange,
   online,
+  onExportReport,
 }) {
   const unlocked = achievements.filter((item) => item.unlocked);
   const topRecords = Object.entries(records)
@@ -88,13 +89,18 @@ export default function LearningHub({
             <span>Keep sessions local and off the public leaderboard</span>
           </label>
           {classroom.enabled && (
-            <input
-              className="classroom-name-input"
-              value={classroom.className}
-              placeholder="Class name (optional)"
-              onChange={(event) => onClassroomChange({ ...classroom, className: event.target.value.slice(0, 40) })}
-              aria-label="Class name"
-            />
+            <>
+              <input
+                className="classroom-name-input"
+                value={classroom.className}
+                placeholder="Class name (optional)"
+                onChange={(event) => onClassroomChange({ ...classroom, className: event.target.value.slice(0, 40) })}
+                aria-label="Class name"
+              />
+              <button type="button" className="classroom-report-btn" onClick={onExportReport}>
+                Export student progress report
+              </button>
+            </>
           )}
         </div>
       </div>
