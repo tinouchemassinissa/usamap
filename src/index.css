@@ -691,3 +691,63 @@ body {
     font-size: 0.82rem;
   }
 }
+
+
+.focus-audio-panel {
+  width: 100%;
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.8rem;
+  background: rgba(15, 23, 42, 0.48);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.focus-preview-btn {
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  border-radius: 9999px;
+  padding: 0.65rem 1rem;
+  background: rgba(59, 130, 246, 0.16);
+  color: white;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.focus-preview-btn:hover,
+.focus-preview-btn:focus-visible {
+  background: rgba(59, 130, 246, 0.28);
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
+}
+
+.focus-volume-label {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+
+.focus-volume-label input[type="range"] {
+  width: 100%;
+  accent-color: #60a5fa;
+}
+
+.focus-track-name {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .focus-audio-panel {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .focus-volume-label {
+    gap: 0.5rem;
+  }
+}
