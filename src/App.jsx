@@ -709,7 +709,7 @@ function App() {
 
       setCurrentFact({
         state: stateName,
-        text: STATE_DATA[stateName].fact,
+        text: STATE_DATA[stateName].verifiedFact || STATE_DATA[stateName].fact,
         pointsEarned: points
       });
 
