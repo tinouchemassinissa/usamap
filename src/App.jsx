@@ -19,6 +19,12 @@ const REGION_VIEWS = {
   "South": { center: [-88, 30], zoom: 1.6 }
 };
 const DEFAULT_VIEW = { center: [-96, 38], zoom: 1 };
+const COMPETITIVE_MODES = new Set(['CLASSIC', 'TIME_ATTACK', 'REVERSE', 'CAPITALS', 'TRIVIA', 'FLAGS']);
+
+const celebrate = (options) => {
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  confetti(options);
+};
 
 const GAME_MODES = {
   CLASSIC: { id: 'CLASSIC', title: 'Classic', desc: 'Find the state on the map.' },
@@ -162,7 +168,7 @@ function App() {
         const newBadges = [...unlockedBadges, badgeId];
         setUnlockedBadges(newBadges);
         localStorage.setItem("usaMapBadges", JSON.stringify(newBadges));
-        confetti({ particleCount: 150, spread: 80, origin: { y: 0.3 }, colors: ['#facc15'] });
+        celebrate({ particleCount: 150, spread: 80, origin: { y: 0.3 }, colors: ['#facc15'] });
       }
     }
   };
@@ -186,6 +192,8 @@ function App() {
   };
 
   const saveToLeaderboard = async (finalScore) => {
+    if (!COMPETITIVE_MODES.has(mode)) return;
+
     if (finalScore > 0 && playerName) {
       try {
         await addDoc(collection(db, "usa-map-leaderboard"), {
@@ -226,16 +234,18 @@ function App() {
       
       playVictorySound();
       
-      const duration = 3.5 * 1000;
-      const animationEnd = Date.now() + duration;
-      const interval = setInterval(function() {
-        var timeLeft = animationEnd - Date.now();
-        if (timeLeft <= 0) {
-          return clearInterval(interval);
-        }
-        var particleCount = 50 * (timeLeft / duration);
-        confetti({ startVelocity: 30, spread: 360, ticks: 60, zIndex: 0, particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } });
-      }, 250);
+      if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        const duration = 3.5 * 1000;
+        const animationEnd = Date.now() + duration;
+        const interval = setInterval(function() {
+          const timeLeft = animationEnd - Date.now();
+          if (timeLeft <= 0) {
+            return clearInterval(interval);
+          }
+          const particleCount = 50 * (timeLeft / duration);
+          celebrate({ startVelocity: 30, spread: 360, ticks: 60, zIndex: 0, particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } });
+        }, 250);
+      }
 
       setTimeout(() => {
         triggerGameOver(score);
@@ -371,8 +381,8 @@ function App() {
         setTimeout(() => setFloatingTexts(prev => prev.filter(f => f.id !== id)), 1500);
       }
       
-      confetti({
-        particleCount: 50 + (newStreak * 10),
+      celebrate({
+        particleCount: Math.min(180, 50 + (newStreak * 10)),
         spread: 60,
         origin: { y: 0.8 },
         colors: ['#22c55e', '#ffffff', '#3b82f6', '#facc15']
