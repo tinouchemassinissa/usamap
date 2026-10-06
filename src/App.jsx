@@ -361,7 +361,7 @@ function App() {
       setMastery((previous) => {
         const next = {
           ...previous,
-          [stateName]: updateMasteryScore(previous[stateName] ?? 0.5, isCorrect),
+          [stateName]: updateMasteryScore(previous[stateName] ?? 0, isCorrect),
         };
         localStorage.setItem("usaMapMastery", JSON.stringify(next));
         return next;
@@ -610,7 +610,7 @@ function App() {
             </div>
             {mode === 'ADAPTIVE' && STATE_DATA[targetState] && (
               <div style={{ marginTop: '0.6rem', color: '#94a3b8', fontSize: '0.95rem' }}>
-                Mastery: {Math.round((mastery[targetState] ?? 0.5) * 100)}%
+                Mastery: {Math.round((mastery[targetState] ?? 0) * 100)}%
               </div>
             )}
           </div>
