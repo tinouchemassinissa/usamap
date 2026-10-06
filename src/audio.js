@@ -181,24 +181,28 @@ export const playAnthem = ({ onEnded, onError } = {}) => {
   audio.preload = 'auto';
   audio.volume = 0.62;
 
-  audio.onended = () => {
-    anthemAudio = null;
-    onEnded?.();
-  };
+  let settled = false;
 
-  audio.onerror = () => {
-    anthemAudio = null;
+  const fail = () => {
+    if (settled) return;
+    settled = true;
+    if (anthemAudio === audio) anthemAudio = null;
     playVictorySound();
     onError?.();
   };
 
+  audio.onended = () => {
+    if (settled) return;
+    settled = true;
+    anthemAudio = null;
+    onEnded?.();
+  };
+
+  audio.onerror = fail;
+
   const playPromise = audio.play();
   if (playPromise?.catch) {
-    playPromise.catch(() => {
-      if (anthemAudio === audio) anthemAudio = null;
-      playVictorySound();
-      onError?.();
-    });
+    playPromise.catch(fail);
   }
 
   return audio;
