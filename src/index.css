@@ -1189,3 +1189,145 @@ body {
     max-width: 100%;
   }
 }
+
+
+/* Official U.S. Census region/division explorer */
+.census-geo-toolbar {
+  width: min(920px, calc(100% - 1rem));
+  margin: 0.35rem auto 0.55rem;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.85rem;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.census-geo-toolbar > div:first-child {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.census-geo-toolbar > a {
+  color: #93c5fd;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.census-geo-toolbar > a:hover,
+.census-geo-toolbar > a:focus-visible {
+  text-decoration: underline;
+}
+
+.census-geo-toggle {
+  display: inline-flex;
+  padding: 0.2rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.census-geo-toggle button {
+  border: 0;
+  border-radius: 9999px;
+  padding: 0.48rem 0.8rem;
+  background: transparent;
+  color: #cbd5e1;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.census-geo-toggle button.active {
+  background: #2563eb;
+  color: white;
+}
+
+.census-geo-toggle button:focus-visible {
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
+}
+
+/* Nine official Census divisions: related hues within each parent region. */
+.division-new-england { fill: #c084fc !important; }
+.division-middle-atlantic { fill: #a855f7 !important; }
+
+.division-east-north-central { fill: #e7a1a1 !important; }
+.division-west-north-central { fill: #c97f7f !important; }
+
+.division-south-atlantic { fill: #b9d9b1 !important; }
+.division-east-south-central { fill: #8fc58a !important; }
+.division-west-south-central { fill: #6eae72 !important; }
+
+.division-mountain { fill: #86b8c8 !important; }
+.division-pacific { fill: #afd1dc !important; }
+
+.census-hierarchy-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 0.8rem;
+  padding: 0.75rem;
+  border-radius: 0.7rem;
+  background: rgba(59, 130, 246, 0.09);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.census-hierarchy-card span {
+  color: #93c5fd;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dossier-source-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 0.5rem;
+}
+
+.dossier-source-link {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.65rem;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  border-radius: 0.7rem;
+  background: rgba(59, 130, 246, 0.07);
+  color: #dbeafe;
+  text-decoration: none;
+}
+
+.dossier-source-link:hover,
+.dossier-source-link:focus-visible {
+  border-color: rgba(96, 165, 250, 0.65);
+  background: rgba(59, 130, 246, 0.14);
+  outline: none;
+}
+
+.dossier-source-link small {
+  color: #94a3b8;
+  line-height: 1.3;
+}
+
+.audit-note {
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.6rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: #fde68a !important;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 768px) {
+  .census-geo-toolbar {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .census-geo-toggle {
+    justify-self: start;
+  }
+}
