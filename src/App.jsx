@@ -3,6 +3,7 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 're
 import { geoCentroid } from 'd3-geo';
 import confetti from 'canvas-confetti';
 import { STATE_DATA } from './data';
+import { CENSUS_DIVISIONS, CENSUS_GEOGRAPHY_SOURCE, CENSUS_REGIONS, CENSUS_STATE_GEOGRAPHY, statesInCensusGroup } from './censusGeography';
 import { playCorrectSound, playIncorrectSound, playAnthem, setFocusMusicVolume, startFocusMusic, stopAnthem, stopFocusMusic } from './audio';
 import { calculatePoints, generateMultipleChoice, isAnswerCorrect, sanitizePlayerName, shuffle } from './game/gameLogic';
 import { DIFFICULTY_PROFILES, computeAchievements, getDueStates, getMasteryBand, getMistakeReviewStates, getProgressSummary, normalizeLearnerProfile, recordLearningAttempt, recordModeResult, selectLearningState } from './game/learningEngine';
@@ -98,6 +99,7 @@ function App() {
   const [sessionStats, setSessionStats] = useState({ attempts: 0, correct: 0, bestStreak: 0, mistakes: {} });
   const [dossierState, setDossierState] = useState(null);
   const [challengeVariant, setChallengeVariant] = useState('STATE');
+  const [geographyLevel, setGeographyLevel] = useState('region');
   const [journey, setJourney] = useState({ path: [], index: 0, start: '', destination: '' });
   const [musicEnabled, setMusicEnabled] = useState(true);
   const [focusVolume, setFocusVolume] = useState(0.34);
@@ -608,26 +610,28 @@ function App() {
 
     if (mode === 'REGIONS') {
       if (STATE_NAMES.includes(stateName)) {
-        const region = STATE_DATA[stateName].region;
-        // Highlight all states in this region
-        const newGuessed = {};
-        const regionStates = [];
-        Object.entries(STATE_DATA).forEach(([name, data]) => {
-          if (data.region === region) {
-            newGuessed[name] = 'correct';
-            regionStates.push(name);
-          }
-        });
+        const census = CENSUS_STATE_GEOGRAPHY[stateName];
+        const groupName = geographyLevel === 'division' ? census.division : census.region;
+        const groupStates = statesInCensusGroup(geographyLevel, groupName);
+        const newGuessed = Object.fromEntries(groupStates.map((name) => [name, 'correct']));
+
         setGuessedStates(newGuessed);
-        if (REGION_VIEWS[region]) {
-          setMapView(REGION_VIEWS[region]);
+        if (REGION_VIEWS[census.region]) {
+          setMapView(REGION_VIEWS[census.region]);
         }
-        
+
         setStudyData({
-          stateName: `${region} Region`,
-          extract: `States in this region: ${regionStates.join(', ')}`,
+          stateName: groupName + (geographyLevel === 'division' ? ' Division' : ' Region'),
+          extract:
+            'Official U.S. Census Bureau ' +
+            (geographyLevel === 'division' ? 'division' : 'region') +
+            '. States: ' +
+            groupStates.join(', '),
           thumbnail: null,
-          url: `https://www.google.com/search?q=US+Census+Bureau+${region}+Region+site:.gov`
+          url: CENSUS_GEOGRAPHY_SOURCE.url,
+          censusRegion: census.region,
+          censusDivision: geographyLevel === 'division' ? census.division : null,
+          censusGroupType: geographyLevel,
         });
       }
       return;
@@ -705,7 +709,7 @@ function App() {
 
       setCurrentFact({
         state: stateName,
-        text: STATE_DATA[stateName].fact,
+        text: STATE_DATA[stateName].verifiedFact || STATE_DATA[stateName].fact,
         pointsEarned: points
       });
 
@@ -959,6 +963,53 @@ function App() {
       </div>
 
       <div className="sr-only" aria-live="assertive" aria-atomic="true">{statusMessage}</div>
+      {mode === 'REGIONS' && (
+        <section className="census-geo-toolbar" aria-label="Census geography level">
+          <div>
+            <span className="hub-eyebrow">OFFICIAL U.S. CENSUS GEOGRAPHY</span>
+            <strong>{geographyLevel === 'region' ? '4 Regions' : '9 Divisions'}</strong>
+          </div>
+          <div className="census-geo-toggle">
+            <button
+              type="button"
+              className={geographyLevel === 'region' ? 'active' : ''}
+              aria-pressed={geographyLevel === 'region'}
+              onClick={() => {
+                setGeographyLevel('region');
+                setGuessedStates({});
+                setStudyData(null);
+                setMapView(DEFAULT_VIEW);
+              }}
+            >
+              4 Regions
+            </button>
+            <button
+              type="button"
+              className={geographyLevel === 'division' ? 'active' : ''}
+              aria-pressed={geographyLevel === 'division'}
+              onClick={() => {
+                setGeographyLevel('division');
+                setGuessedStates({});
+                setStudyData(null);
+                setMapView(DEFAULT_VIEW);
+              }}
+            >
+              9 Divisions
+            </button>
+          </div>
+          <a href={CENSUS_GEOGRAPHY_SOURCE.url} target="_blank" rel="noreferrer">
+            U.S. Census Bureau reference
+          </a>
+          <div className="census-legend" aria-label={geographyLevel === 'region' ? 'Census region legend' : 'Census division legend'}>
+            {(geographyLevel === 'region' ? Object.keys(CENSUS_REGIONS) : Object.keys(CENSUS_DIVISIONS)).map((name) => (
+              <span key={name} className={'census-legend-item legend-' + name.toLowerCase().replaceAll(' ', '-')}>
+                <i aria-hidden="true" />
+                {name}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
       <div className="map-container">
         <ComposableMap projection="geoAlbersUsa" className="main-map-svg">
           <defs>
@@ -979,13 +1030,16 @@ function App() {
                     if (status === "incorrect") className += " incorrect";
                     
                     if (mode === 'REGIONS' && STATE_DATA[stateName]) {
-                      const region = STATE_DATA[stateName].region;
-                      if (region === 'West') className += " region-west";
-                      if (region === 'Midwest') className += " region-midwest";
-                      if (region === 'South') className += " region-south";
-                      if (region === 'Northeast') className += " region-northeast";
-                      
-                      // Highlight effect when a region is actively selected
+                      const census = CENSUS_STATE_GEOGRAPHY[stateName];
+                      if (geographyLevel === 'region') {
+                        if (census.region === 'West') className += " region-west";
+                        if (census.region === 'Midwest') className += " region-midwest";
+                        if (census.region === 'South') className += " region-south";
+                        if (census.region === 'Northeast') className += " region-northeast";
+                      } else {
+                        className += ' division-' + census.division.toLowerCase().replaceAll(' ', '-');
+                      }
+
                       const isAnySelected = Object.keys(guessedStates).length > 0;
                       if (status === "correct") {
                         className += " active-region";
@@ -1160,13 +1214,19 @@ function App() {
                   )}
                 </div>
                 
+                {mode === 'REGIONS' && studyData.censusRegion && (
+                  <div className="census-hierarchy-card">
+                    <span>Region</span><strong>{studyData.censusRegion}</strong>
+                    <span>Division</span><strong>{studyData.censusDivision}</strong>
+                  </div>
+                )}
                 <div className="fact-box" style={{ fontSize: mode === 'REGIONS' ? '0.9rem' : '1.1rem', lineHeight: mode === 'REGIONS' ? '1.4' : '1.6', maxHeight: '30vh', overflowY: 'auto' }}>
                   {studyData.extract}
                 </div>
                 
                 {studyData.url && (
                   <a href={studyData.url} target="_blank" rel="noreferrer" className="btn-primary" style={{ textDecoration: 'none', textAlign: 'center', background: '#3b82f6', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.2rem' }}>🏛️</span> Research Official .gov & .edu Records
+                    <span style={{ fontSize: '1.2rem' }}>🏛️</span> {mode === 'REGIONS' ? 'Open official Census reference' : 'Research Official .gov & .edu Records'}
                   </a>
                 )}
               </div>

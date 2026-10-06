@@ -39,8 +39,8 @@
 - Mistake Review
 
 ### Explore and study
-- **State dossiers** with capital, population, area, statehood, geography, neighbors, fact, and personal learning history.
-- Region Explorer.
+- **State dossiers** with Census Region, Census Division, FIPS code, Vintage 2025 population, Census total area, official-source links, neighbors, statehood, and personal learning history.
+- **Region Explorer** uses the official U.S. Census Bureau model and can switch between **4 Regions** and **9 Divisions**.
 - Study Guide.
 - **Per-mode records** for best score, accuracy, streak, wins, and plays.
 
@@ -107,6 +107,8 @@ src/
 ├── App.jsx
 ├── audio.js
 ├── data.js
+├── censusGeography.js
+├── officialStateData.js
 ├── firebase.js
 ├── game/
 │   ├── gameLogic.js
@@ -147,4 +149,25 @@ https://commons.wikimedia.org/wiki/File:Air_-_Air_Force_Strings_-_United_States_
 
 The v2 learner profile is stored locally and migrates the previous scalar mastery values where available. Each state now has structured learning metadata used by Smart Review and Mistake Review. Per-mode records, difficulty, classroom settings, and audio preferences are also persisted locally.
 
-The state facts and population labels currently come from the repository's bundled educational dataset. They should be treated as a maintained content layer separate from the learning engine; future data-refresh work can update sources/years without changing the spaced-repetition model.
+The authoritative data layer is intentionally separated from the learning engine:
+
+- Census Region, Census Division, and FIPS code: U.S. Census Bureau reference geography.
+- Population: July 1, 2025 Vintage 2025 Census estimates.
+- Total area: Census 2010 MAF/TIGER state area measurements.
+- Student-friendly enrichment: U.S. Census Bureau State Facts for Students.
+- Federal parks/places: National Park Service state directories.
+- Statehood research: National Archives / congressional historical records.
+
+Older unsourced fun facts are retained only as quarantined legacy content and are not shown as verified learning facts. See `docs/data-audit.md` for audit status and provenance policy.
+
+
+## Official Census geography
+
+Region Explorer follows the U.S. Census Bureau's canonical hierarchy:
+
+- **Northeast** — New England, Middle Atlantic
+- **Midwest** — East North Central, West North Central
+- **South** — South Atlantic, East South Central, West South Central
+- **West** — Mountain, Pacific
+
+The app includes only the 50 states; the District of Columbia is therefore not included in the South Atlantic game group.
