@@ -3,7 +3,7 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 're
 import { geoCentroid } from 'd3-geo';
 import confetti from 'canvas-confetti';
 import { STATE_DATA } from './data';
-import { CENSUS_GEOGRAPHY_SOURCE, CENSUS_STATE_GEOGRAPHY, statesInCensusGroup } from './censusGeography';
+import { CENSUS_DIVISIONS, CENSUS_GEOGRAPHY_SOURCE, CENSUS_REGIONS, CENSUS_STATE_GEOGRAPHY, statesInCensusGroup } from './censusGeography';
 import { playCorrectSound, playIncorrectSound, playAnthem, setFocusMusicVolume, startFocusMusic, stopAnthem, stopFocusMusic } from './audio';
 import { calculatePoints, generateMultipleChoice, isAnswerCorrect, sanitizePlayerName, shuffle } from './game/gameLogic';
 import { DIFFICULTY_PROFILES, computeAchievements, getDueStates, getMasteryBand, getMistakeReviewStates, getProgressSummary, normalizeLearnerProfile, recordLearningAttempt, recordModeResult, selectLearningState } from './game/learningEngine';
@@ -630,7 +630,7 @@ function App() {
           thumbnail: null,
           url: CENSUS_GEOGRAPHY_SOURCE.url,
           censusRegion: census.region,
-          censusDivision: census.division,
+          censusDivision: geographyLevel === 'division' ? census.division : null,
           censusGroupType: geographyLevel,
         });
       }
@@ -1000,6 +1000,14 @@ function App() {
           <a href={CENSUS_GEOGRAPHY_SOURCE.url} target="_blank" rel="noreferrer">
             U.S. Census Bureau reference
           </a>
+          <div className="census-legend" aria-label={geographyLevel === 'region' ? 'Census region legend' : 'Census division legend'}>
+            {(geographyLevel === 'region' ? Object.keys(CENSUS_REGIONS) : Object.keys(CENSUS_DIVISIONS)).map((name) => (
+              <span key={name} className={'census-legend-item legend-' + name.toLowerCase().replaceAll(' ', '-')}>
+                <i aria-hidden="true" />
+                {name}
+              </span>
+            ))}
+          </div>
         </section>
       )}
       <div className="map-container">
