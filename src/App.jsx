@@ -341,7 +341,7 @@ function App() {
 
     if (mode === 'REVERSE' || mode === 'FLAGS' || mode === 'TRIVIA') return;
     
-    if (guessedStates[stateName] === "correct" || !STATE_NAMES.includes(stateName)) return;
+    if ((mode !== 'ADAPTIVE' && guessedStates[stateName] === "correct") || !STATE_NAMES.includes(stateName)) return;
 
     handleGuessMap(stateName, evt);
   };
@@ -422,6 +422,13 @@ function App() {
 
   const closeFactAndNext = () => {
     setCurrentFact(null);
+
+    if (mode === 'ADAPTIVE') {
+      setGuessedStates({});
+      pickNewTarget({});
+      return;
+    }
+
     pickNewTarget(guessedStates);
   };
 
@@ -436,6 +443,11 @@ function App() {
       setInstallPrompt(null);
     }
   };
+
+  const masteredCount = STATE_NAMES.filter((state) => (mastery[state] ?? 0) >= 0.8).length;
+  const overallMastery = Math.round(
+    STATE_NAMES.reduce((sum, state) => sum + (mastery[state] ?? 0), 0) / STATE_NAMES.length * 100
+  );
 
   return (
     <div className="game-wrapper" style={{ width: '100vw', height: '100vh' }}>
@@ -533,6 +545,16 @@ function App() {
                 {b.icon}
               </div>
             ))}
+          </div>
+
+          <div className="learning-progress" aria-label={`Learning mastery ${overallMastery} percent; ${masteredCount} of 50 states mastered`}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '0.9rem' }}>
+              <span>Learning mastery</span>
+              <strong>{overallMastery}% · {masteredCount}/50 mastered</strong>
+            </div>
+            <div className="progress-track">
+              <div className="progress-fill" style={{ width: `${overallMastery}%` }} />
+            </div>
           </div>
 
           {leaderboard.length > 0 && (
