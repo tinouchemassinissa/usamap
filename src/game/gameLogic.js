@@ -36,3 +36,23 @@ export function sanitizePlayerName(value) {
 export function calculatePoints(streak) {
   return 10 * Math.max(1, streak);
 }
+
+export function updateMasteryScore(current = 0.5, isCorrect, alpha = 0.75) {
+  const observation = isCorrect ? 1 : 0;
+  return Math.max(0, Math.min(1, (alpha * current) + ((1 - alpha) * observation)));
+}
+
+export function selectWeightedState(states, mastery = {}, random = Math.random) {
+  if (!states.length) return null;
+
+  const weights = states.map((state) => Math.max(0.05, 1 - (mastery[state] ?? 0.5)));
+  const total = weights.reduce((sum, value) => sum + value, 0);
+  let pick = random() * total;
+
+  for (let i = 0; i < states.length; i += 1) {
+    pick -= weights[i];
+    if (pick <= 0) return states[i];
+  }
+
+  return states[states.length - 1];
+}
