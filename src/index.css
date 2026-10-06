@@ -161,21 +161,30 @@ body {
 }
 
 .map-container {
-  flex-grow: 1;
-  width: 100%;
-  max-width: 1000px;
+  flex: 1 1 auto;
+  width: min(100%, 1100px);
+  height: clamp(320px, 58dvh, 620px);
+  min-height: 0;
+  margin-inline: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   z-index: 1;
-  overflow: hidden; /* Prevent map from leaking out of the bounds into other UI elements */
+  overflow: hidden;
+  overflow: clip;
+  contain: layout paint;
+  isolation: isolate;
+  border-radius: 1rem;
 }
 
 .main-map-svg {
+  display: block;
   width: 100%;
-  height: auto;
-  overflow: visible !important;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden !important;
 }
 
 .state-path {
@@ -1372,3 +1381,48 @@ body {
 .legend-west-south-central i { background: #6eae72; }
 .legend-mountain i { background: #86b8c8; }
 .legend-pacific i { background: #afd1dc; }
+
+
+/* Keep map zoom/pan inside its viewport at every browser zoom level. */
+.map-container .rsm-svg,
+.map-container svg {
+  overflow: hidden !important;
+}
+
+.map-container .rsm-zoomable-group {
+  transform-origin: center;
+}
+
+@media (max-height: 760px) and (min-width: 769px) {
+  .map-container {
+    height: clamp(300px, 50dvh, 500px);
+  }
+
+  .header {
+    margin-bottom: 0.55rem;
+  }
+
+  .census-geo-toolbar {
+    margin-top: 0.15rem;
+    margin-bottom: 0.35rem;
+    padding-block: 0.55rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .map-container {
+    width: 100%;
+    height: clamp(300px, 54dvh, 520px);
+    border-radius: 0.75rem;
+  }
+
+  .main-map-svg {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-container {
+    height: clamp(280px, 50dvh, 440px);
+  }
+}
