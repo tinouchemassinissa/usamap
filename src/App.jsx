@@ -22,6 +22,16 @@ const REGION_VIEWS = {
   "South": { center: [-88, 30], zoom: 1.6 }
 };
 const DEFAULT_VIEW = { center: [-96, 38], zoom: 1 };
+const MOBILE_NORTHEAST_STATES = new Set([
+  'Connecticut',
+  'Delaware',
+  'Massachusetts',
+  'Maryland',
+  'New Hampshire',
+  'New Jersey',
+  'Rhode Island',
+  'Vermont'
+]);
 const COMPETITIVE_MODES = new Set(['CLASSIC', 'TIME_ATTACK', 'REVERSE', 'CAPITALS', 'TRIVIA', 'FLAGS']);
 
 const celebrate = (options) => {
@@ -156,6 +166,17 @@ function App() {
     }
     return () => clearInterval(timerRef.current);
   }, [gameStarted, gameOver, currentFact, mode]);
+
+  useEffect(() => {
+    if (!gameStarted || mode === 'REGIONS' || mode === 'STUDY') return;
+
+    const isMobile = window.matchMedia?.('(max-width: 768px)').matches;
+    if (isMobile && MOBILE_NORTHEAST_STATES.has(targetState)) {
+      setMapView(REGION_VIEWS.Northeast);
+    } else {
+      setMapView(DEFAULT_VIEW);
+    }
+  }, [gameStarted, mode, targetState]);
 
   const checkBadges = (currentScore, currentMode) => {
     if (currentScore >= 200) {
@@ -462,7 +483,7 @@ function App() {
 
           {showAbout && (
             <div className="overlay" style={{ zIndex: 2000 }}>
-              <div className="glass-panel modal" style={{ maxWidth: '500px' }}>
+              <div className="glass-panel modal" role="dialog" aria-modal="true" style={{ maxWidth: '500px' }}>
                 <h2 className="title" style={{ fontSize: '2rem', marginBottom: '1rem' }}>About</h2>
                 <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '1.1rem', lineHeight: '1.5' }}>
                   <div><strong>Author:</strong> Massinissa TINOUCHE</div>
@@ -480,7 +501,7 @@ function App() {
 
           {showInstallGuide && (
             <div className="overlay" style={{ zIndex: 2000 }}>
-              <div className="glass-panel modal" style={{ maxWidth: '400px', textAlign: 'left' }}>
+              <div className="glass-panel modal" role="dialog" aria-modal="true" style={{ maxWidth: '400px', textAlign: 'left' }}>
                 <h2 className="title" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>How to Install</h2>
                 <p style={{ marginBottom: '1rem', lineHeight: '1.5' }}>
                   Your browser doesn't support automatic installation. To install this app:
@@ -495,7 +516,7 @@ function App() {
             </div>
           )}
 
-        <div className="glass-panel modal">
+        <div className="glass-panel modal" role="dialog" aria-modal="true">
           <div className="mascot">🦅</div>
           <h1 className="title">USA State Explorer</h1>
           
@@ -702,7 +723,7 @@ function App() {
 
       {currentFact && (
         <div className="overlay">
-          <div className="glass-panel modal">
+          <div className="glass-panel modal" role="dialog" aria-modal="true">
             <h2 className="title" style={{ fontSize: '2.5rem' }}>Awesome! 🎉</h2>
             <div style={{ color: '#22c55e', fontSize: '1.2rem', fontWeight: 'bold' }}>
               {currentFact.pointsEarned > 0 ? `+${currentFact.pointsEarned} Points!` : "Fact Unlocked! 📚"}
@@ -723,7 +744,7 @@ function App() {
 
       {studyData && (
         <div className={mode === 'REGIONS' ? 'transparent-overlay' : 'overlay'} style={mode === 'REGIONS' ? { pointerEvents: 'none' } : { alignItems: 'flex-start', paddingTop: '5vh' }}>
-          <div className="glass-panel modal" style={mode === 'REGIONS' ? { position: 'absolute', bottom: '2rem', right: '2rem', width: '380px', maxWidth: '90vw', animation: 'floatUp 0.3s ease-out', pointerEvents: 'auto', padding: '1.5rem' } : { maxWidth: '700px', animation: 'floatUp 0.3s ease-out', pointerEvents: 'auto' }}>
+          <div className="glass-panel modal" role={mode === 'REGIONS' ? 'region' : 'dialog'} aria-modal={mode === 'REGIONS' ? undefined : 'true'} style={mode === 'REGIONS' ? { position: 'absolute', bottom: '2rem', right: '2rem', width: '380px', maxWidth: '90vw', animation: 'floatUp 0.3s ease-out', pointerEvents: 'auto', padding: '1.5rem' } : { maxWidth: '700px', animation: 'floatUp 0.3s ease-out', pointerEvents: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 className="title" style={{ fontSize: mode === 'REGIONS' ? '1.8rem' : '2.5rem', margin: 0 }}>{studyData.stateName}</h2>
               <button onClick={() => {
@@ -771,7 +792,7 @@ function App() {
 
       {gameOver && (
         <div className="overlay">
-          <div className="glass-panel modal">
+          <div className="glass-panel modal" role="dialog" aria-modal="true">
             <div className="mascot">{(mode === 'TIME_ATTACK' ? timeLeft <= 0 : lives <= 0) ? "😢" : "🏆"}</div>
             <h2 className="title" style={{ fontSize: '3.5rem' }}>
               {(mode === 'TIME_ATTACK' ? timeLeft <= 0 : lives <= 0) ? "Game Over" : "You Win!"}
