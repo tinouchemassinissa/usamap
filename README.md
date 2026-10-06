@@ -24,7 +24,7 @@
 - **Region Explorer** — learn the four major U.S. regions.
 - **Persistent mastery tracking** stored locally on the device.
 - **Achievement badges** and high-score tracking.
-- **Classical-style focus music** generated locally with the Web Audio API; no copyrighted commercial recording is bundled.
+- **Classical focus music** — Bach's *Air on the G String* performed by the U.S. Air Force Strings, with an audible preview, persistent volume control, and a synthesized fallback if streaming fails.
 - **Victory ceremony** — mastering all 50 states fills the map with the U.S. flag and plays a public-domain U.S. Navy Band performance of *The Star-Spangled Banner*. A Continue button lets students move on immediately.
 - **Global leaderboard** for competitive modes.
 - **Installable PWA** with runtime caching for state flags, map topology, and fonts.
@@ -116,4 +116,11 @@ The victory anthem uses the public-domain recording **“The Star-Spangled Banne
 
 https://commons.wikimedia.org/wiki/File:%22The_Star-Spangled_Banner%22_performed_by_the_United_States_Navy_Band.mp3
 
-The performance is identified by Wikimedia Commons as a work of the U.S. federal government and public domain in the United States. The in-game focus soundtrack and feedback tones are generated locally by the application with the Web Audio API.
+The performance is identified by Wikimedia Commons as a work of the U.S. federal government and public domain in the United States. The focus soundtrack uses the public-domain U.S. Air Force Strings recording of Bach's *Air on the G String*. Correct/incorrect cues and the emergency focus fallback are generated locally with the Web Audio API.
+
+
+### Focus music source
+
+The focus track is **J.S. Bach — Air on the G String**, performed by the **United States Air Force Band, Air Force Strings** and hosted by Wikimedia Commons. Wikimedia identifies the composition, performance, and recording as public domain in the United States:
+
+https://commons.wikimedia.org/wiki/File:Air_-_Air_Force_Strings_-_United_States_Air_Force_Band.mp3

@@ -3,7 +3,7 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 're
 import { geoCentroid } from 'd3-geo';
 import confetti from 'canvas-confetti';
 import { STATE_DATA } from './data';
-import { playCorrectSound, playIncorrectSound, playAnthem, startFocusMusic, stopAnthem, stopFocusMusic } from './audio';
+import { playCorrectSound, playIncorrectSound, playAnthem, setFocusMusicVolume, startFocusMusic, stopAnthem, stopFocusMusic } from './audio';
 import { calculatePoints, generateMultipleChoice, isAnswerCorrect, sanitizePlayerName, selectWeightedState, updateMasteryScore } from './game/gameLogic';
 import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from './firebase';
@@ -93,6 +93,7 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("");
   const [mastery, setMastery] = useState({});
   const [musicEnabled, setMusicEnabled] = useState(true);
+  const [focusVolume, setFocusVolume] = useState(0.34);
   const [victoryCelebration, setVictoryCelebration] = useState(false);
 
   const timerRef = useRef(null);
@@ -137,6 +138,12 @@ function App() {
 
     const savedMusicPreference = localStorage.getItem("usaMapMusic");
     if (savedMusicPreference === "off") setMusicEnabled(false);
+
+    const savedFocusVolume = Number(localStorage.getItem("usaMapMusicVolume"));
+    if (Number.isFinite(savedFocusVolume) && savedFocusVolume >= 0 && savedFocusVolume <= 1) {
+      setFocusVolume(savedFocusVolume);
+      setFocusMusicVolume(savedFocusVolume);
+    }
 
     fetchLeaderboard();
 
@@ -222,7 +229,7 @@ function App() {
     setStatusMessage("");
     setVictoryCelebration(false);
     stopAnthem();
-    if (musicEnabled) startFocusMusic();
+    if (musicEnabled) startFocusMusic(focusVolume);
     pickNewTarget({});
   };
 
@@ -291,7 +298,25 @@ function App() {
     }
 
     if (gameStarted && !gameOver) {
-      startFocusMusic();
+      startFocusMusic(focusVolume);
+    }
+  };
+
+  const previewFocusMusic = () => {
+    setMusicEnabled(true);
+    localStorage.setItem("usaMapMusic", "on");
+    startFocusMusic(focusVolume);
+    setStatusMessage("Playing Bach — Air on the G String.");
+  };
+
+  const handleFocusVolumeChange = (event) => {
+    const nextVolume = Number(event.target.value);
+    setFocusVolume(nextVolume);
+    setFocusMusicVolume(nextVolume);
+    localStorage.setItem("usaMapMusicVolume", String(nextVolume));
+
+    if (musicEnabled) {
+      startFocusMusic(nextVolume);
     }
   };
 
@@ -350,7 +375,10 @@ function App() {
         playAnthem({
           onEnded: () => triggerGameOver(scoreRef.current),
           onError: () => {
-            window.setTimeout(() => triggerGameOver(scoreRef.current), 5000);
+            victoryTimeoutRef.current = window.setTimeout(
+              () => triggerGameOver(scoreRef.current),
+              5000
+            );
           }
         });
       }
@@ -579,10 +607,10 @@ function App() {
                   <div><strong>Author:</strong> Massinissa TINOUCHE</div>
                   <div><strong>Address:</strong> San Jose, CA USA</div>
                   <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', borderLeft: '4px solid var(--accent-blue)' }}>
-                    <strong>USA State Explorer</strong> is an interactive educational PWA designed to help students learn about the 50 US states, their flags, capitals, and geographic regions. A gentle classical-style focus soundtrack supports study, and completing all 50 states unlocks a flag-map ceremony with <em>The Star-Spangled Banner</em>.
+                    <strong>USA State Explorer</strong> is an interactive educational PWA designed to help students learn about the 50 US states, their flags, capitals, and geographic regions. Bach's <em>Air on the G String</em>, performed by the U.S. Air Force Strings, provides a calm focus soundtrack. Completing all 50 states unlocks a flag-map ceremony with <em>The Star-Spangled Banner</em>.
                   </div>
                   <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-                    Victory anthem performance: United States Navy Band — public-domain U.S. federal government recording.
+                    Focus music: U.S. Air Force Strings. Victory anthem: United States Navy Band. Both recordings are public-domain U.S. federal government works.
                   </div>
                 </div>
                 <button className="btn-primary" onClick={() => setShowAbout(false)} style={{ marginTop: '2rem' }}>
@@ -634,6 +662,26 @@ function App() {
             <button className="btn-primary" style={{ background: '#10b981' }} onClick={handleInstallClick}>
               Install App 📲
             </button>
+          </div>
+
+          <div className="focus-audio-panel">
+            <button type="button" className="focus-preview-btn" onClick={previewFocusMusic}>
+              ▶ Play focus music
+            </button>
+            <label className="focus-volume-label">
+              <span>Volume</span>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={focusVolume}
+                onChange={handleFocusVolumeChange}
+                aria-label="Focus music volume"
+              />
+              <span>{Math.round(focusVolume * 100)}%</span>
+            </label>
+            <div className="focus-track-name">Bach · Air on the G String · U.S. Air Force Strings</div>
           </div>
 
           <div className="badges-container">
