@@ -6,7 +6,7 @@ import {
   CENSUS_STATE_GEOGRAPHY,
   statesInCensusGroup,
 } from '../censusGeography.js';
-import { POPULATION_2025 } from '../officialStateData.js';
+import { POPULATION_2025, TOTAL_AREA_SQ_MI_2010 } from '../officialStateData.js';
 
 test('official Census model contains 4 regions and 9 divisions', () => {
   assert.equal(Object.keys(CENSUS_REGIONS).length, 4);
@@ -41,6 +41,13 @@ test('division membership is complete without duplicates', () => {
   );
   assert.equal(divisionStates.length, 50);
   assert.equal(new Set(divisionStates).size, 50);
+});
+
+test('official Census total-area layer contains all 50 states and fixes legacy land-area mixups', () => {
+  assert.equal(Object.keys(TOTAL_AREA_SQ_MI_2010).length, 50);
+  assert.equal(TOTAL_AREA_SQ_MI_2010.Delaware, 2489);
+  assert.equal(TOTAL_AREA_SQ_MI_2010['Rhode Island'], 1545);
+  assert.equal(TOTAL_AREA_SQ_MI_2010.Alaska, 665384);
 });
 
 test('Vintage 2025 population layer contains all 50 states', () => {
