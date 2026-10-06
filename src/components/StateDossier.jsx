@@ -41,7 +41,7 @@ export default function StateDossier({ stateName, data, stats, onClose }) {
             <strong>{data.population}</strong>
           </div>
           <div>
-            <span>Total area</span>
+            <span>Total area · Census 2010</span>
             <strong>{data.area}</strong>
           </div>
           <div>
