@@ -56,7 +56,7 @@ test('streak scoring remains deterministic', () => {
 });
 
 test('mastery moves toward observed performance', () => {
-  assert.equal(updateMasteryScore(0.5, true), 0.625);
+  assert.equal(updateMasteryScore(0, true), 0.25);
   assert.equal(updateMasteryScore(0.5, false), 0.375);
 });
 
