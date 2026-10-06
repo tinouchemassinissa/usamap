@@ -81,6 +81,7 @@ export const STATE_DATA = Object.fromEntries(
         legacyFact: data.fact,
         sources: {
           censusGeography: OFFICIAL_DATA_SOURCES.censusRegions,
+          studentFacts: OFFICIAL_DATA_SOURCES.censusStudentFacts,
           population: populationValue
             ? {
                 ...OFFICIAL_DATA_SOURCES.censusPopulation2025,
