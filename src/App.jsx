@@ -544,6 +544,11 @@ function App() {
       const currentState = journey.path[journey.index];
       if (!isCorrectStep) {
         playIncorrectSound();
+        setLearnerProfile((previous) => {
+          const next = recordLearningAttempt(previous, currentState, false);
+          localStorage.setItem("usaMapLearnerProfile", JSON.stringify(next));
+          return next;
+        });
         setStatusMessage(stateName + ' is not the next state on this route. From ' + currentState + ', look for the highlighted shortest-path neighbor.');
         setLives((previous) => {
           const nextLives = previous - 1;
@@ -733,7 +738,7 @@ function App() {
   const closeFactAndNext = () => {
     setCurrentFact(null);
 
-    if (mode === 'ADAPTIVE' || mode === 'MISTAKES') {
+    if (mode === 'ADAPTIVE') {
       setGuessedStates({});
       pickNewTarget({});
       return;
@@ -817,7 +822,7 @@ function App() {
             </div>
           )}
 
-        <main className="glass-panel modal">
+        <main className="glass-panel modal home-panel">
           <div className="mascot">🦅</div>
           <h1 className="title">USA State Explorer</h1>
           
@@ -925,7 +930,7 @@ function App() {
               {(mode === 'FLAGS' || (mode === 'MIXED' && challengeVariant === 'FLAG')) && targetState && STATE_DATA[targetState] && (
                 <img src={`https://flagcdn.com/w160/us-${STATE_DATA[targetState].code}.png`} alt={`${targetState} flag`} style={{ width: '120px', borderRadius: '8px', border: '2px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }} />
               )}
-              {targetState && STATE_DATA[targetState] && mode !== 'REVERSE' && mode !== 'TRIVIA' && mode !== 'CAPITALS' && mode !== 'FLAGS' && mode !== 'STUDY' && mode !== 'REGIONS' && !(mode === 'MIXED' && ['FLAG', 'REGION'].includes(challengeVariant)) && (
+              {targetState && STATE_DATA[targetState] && mode !== 'REVERSE' && mode !== 'TRIVIA' && mode !== 'CAPITALS' && mode !== 'FLAGS' && mode !== 'STUDY' && mode !== 'REGIONS' && mode !== 'MIXED' && (
                 <img src={`https://flagcdn.com/w80/us-${STATE_DATA[targetState].code}.png`} alt={`${targetState} flag`} style={{ width: '50px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)' }} />
               )}
               {mode === 'JOURNEY' ? journey.destination :
