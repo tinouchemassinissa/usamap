@@ -77,10 +77,10 @@ export default function StateDossier({ stateName, data, stats, onClose }) {
 
         <section className="dossier-section">
           <h3>Remember this</h3>
-          <p>{data.fact}</p>
-          {data.audit?.fact !== 'verified' && (
+          <p>{data.verifiedFact || data.fact}</p>
+          {data.audit?.legacyFact?.startsWith('quarantined') && (
             <p className="audit-note">
-              This educational fact is in the qualitative audit queue; Census geography and V2025 population above are already verified.
+              Older unsourced fun facts are excluded from the verified learning layer until individually checked against authoritative sources.
             </p>
           )}
         </section>
