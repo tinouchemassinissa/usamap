@@ -3,7 +3,7 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 're
 import { geoCentroid } from 'd3-geo';
 import confetti from 'canvas-confetti';
 import { STATE_DATA } from './data';
-import { playCorrectSound, playIncorrectSound } from './audio';
+import { playCorrectSound, playIncorrectSound, playVictorySound } from './audio';
 import { calculatePoints, generateMultipleChoice, isAnswerCorrect, sanitizePlayerName, selectWeightedState, updateMasteryScore } from './game/gameLogic';
 import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from './firebase';
@@ -68,7 +68,6 @@ function App() {
 
   const [unlockedBadges, setUnlockedBadges] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
-  const [musicPlaying, setMusicPlaying] = useState(false);
   const [studyData, setStudyData] = useState(null); // Advanced Study Guide Data
   const [mapView, setMapView] = useState(DEFAULT_VIEW);
   const [correctAnswer, setCorrectAnswer] = useState(null);
@@ -116,24 +115,11 @@ function App() {
 
     fetchLeaderboard();
 
-    const bgMusic = document.getElementById('bg-music');
-    const anthemMusic = document.getElementById('anthem-audio');
-
-    if (bgMusic) bgMusic.volume = 0.05;
-    if (anthemMusic) {
-      anthemMusic.volume = 0.08;
-      anthemMusic.onended = () => {
-        if (musicPlaying && bgMusic) {
-          bgMusic.play().catch(e => console.log(e));
-        }
-      };
-    }
-
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, [musicPlaying]);
+  }, []);
 
   useEffect(() => {
     scoreRef.current = score;
@@ -181,23 +167,6 @@ function App() {
     }
   };
 
-  const toggleMusic = () => {
-    const bgMusic = document.getElementById('bg-music');
-    const anthemMusic = document.getElementById('anthem-audio');
-    
-    if (musicPlaying) {
-      if (bgMusic) bgMusic.pause();
-      if (anthemMusic) anthemMusic.pause();
-    } else {
-      if (anthemMusic && anthemMusic.currentTime > 0 && !anthemMusic.ended) {
-        anthemMusic.play().catch(e => console.log(e));
-      } else if (bgMusic) {
-        bgMusic.play().catch(e => console.log(e));
-      }
-    }
-    setMusicPlaying(!musicPlaying);
-  };
-
   const startGame = () => {
     const finalName = sanitizePlayerName(playerName);
     setPlayerName(finalName);
@@ -213,13 +182,7 @@ function App() {
     setCorrectAnswer(null);
     setStatusMessage("");
     pickNewTarget({});
-    
-    // Play Yankee Doodle via audio element
-    const bgMusic = document.getElementById('bg-music');
-    if (bgMusic) {
-      bgMusic.currentTime = 0;
-      bgMusic.play().then(() => setMusicPlaying(true)).catch(e => console.log("Audio block:", e));
-    }
+
   };
 
   const saveToLeaderboard = async (finalScore) => {
@@ -258,13 +221,7 @@ function App() {
     if (remaining.length === 0) {
       setTargetState("You Win!");
       
-      const anthemMusic = document.getElementById('anthem-audio');
-      const bgMusic = document.getElementById('bg-music');
-      if (bgMusic) bgMusic.pause();
-      if (anthemMusic) {
-        anthemMusic.currentTime = 0;
-        anthemMusic.play().catch(e => console.log(e));
-      }
+      playVictorySound();
       
       const duration = 3.5 * 1000;
       const animationEnd = Date.now() + duration;
@@ -492,17 +449,10 @@ function App() {
 
   return (
     <div className="game-wrapper" style={{ width: '100vw', height: '100vh' }}>
-      {/* Hidden Audio Elements for better browser support - ALWAYS MOUNTED */}
-      <audio id="anthem-audio" src="/anthem.mp3" preload="auto"></audio>
-      <audio id="bg-music" src="/music.mp3" loop preload="auto"></audio>
-
       {!gameStarted ? (
         <div className="game-container" style={{ justifyContent: 'center' }}>
           <button className="icon-btn about-btn" onClick={() => setShowAbout(true)} title="About USA State Explorer" style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 100 }}>
             ℹ️
-          </button>
-          <button className="icon-btn music-toggle" onClick={toggleMusic} title="Toggle Music">
-            {musicPlaying ? "🔊" : "🔇"}
           </button>
 
           {showAbout && (
@@ -612,9 +562,6 @@ function App() {
       <div className="game-container">
         <button className="icon-btn home-btn" onClick={() => setGameStarted(false)} title="Back to Menu">
           🏠
-        </button>
-        <button className="icon-btn music-toggle" onClick={toggleMusic} title="Toggle Music">
-          {musicPlaying ? "🔊" : "🔇"}
         </button>
       <div className="header">
         <div className="title-container">
