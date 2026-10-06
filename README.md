@@ -24,6 +24,8 @@
 - **Region Explorer** — learn the four major U.S. regions.
 - **Persistent mastery tracking** stored locally on the device.
 - **Achievement badges** and high-score tracking.
+- **Classical-style focus music** generated locally with the Web Audio API; no copyrighted commercial recording is bundled.
+- **Victory ceremony** — mastering all 50 states fills the map with the U.S. flag and plays a public-domain U.S. Navy Band performance of *The Star-Spangled Banner*. A Continue button lets students move on immediately.
 - **Global leaderboard** for competitive modes.
 - **Installable PWA** with runtime caching for state flags, map topology, and fonts.
 - **Keyboard-accessible map controls**, screen-reader status feedback, browser zoom support, and reduced-motion handling.
@@ -106,3 +108,12 @@ Created by **Massinissa TINOUCHE**.
 ---
 
 Contributions and bug reports are welcome through GitHub.
+
+
+## Audio attribution
+
+The victory anthem uses the public-domain recording **“The Star-Spangled Banner” performed by the United States Navy Band**, hosted by Wikimedia Commons:
+
+https://commons.wikimedia.org/wiki/File:%22The_Star-Spangled_Banner%22_performed_by_the_United_States_Navy_Band.mp3
+
+The performance is identified by Wikimedia Commons as a work of the U.S. federal government and public domain in the United States. The in-game focus soundtrack and feedback tones are generated locally by the application with the Web Audio API.
