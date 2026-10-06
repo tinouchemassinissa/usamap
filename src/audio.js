@@ -65,3 +65,31 @@ export const playIncorrectSound = () => {
     console.error("Audio API not supported or error", e);
   }
 };
+
+
+export const playVictorySound = () => {
+  try {
+    initAudio();
+    const now = audioCtx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+
+    notes.forEach((frequency, index) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const start = now + index * 0.12;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(frequency, start);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.22, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.32);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(start);
+      osc.stop(start + 0.34);
+    });
+  } catch (e) {
+    console.error("Audio API not supported or error", e);
+  }
+};
