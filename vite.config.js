@@ -62,7 +62,7 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/.*Star-Spangled-Banner.*\.mp3$/i,
+            urlPattern: /^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/.*\.mp3$/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'victory-anthem-cache',
