@@ -1140,3 +1140,24 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+
+.classroom-report-btn {
+  width: 100%;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  border-radius: 0.65rem;
+  padding: 0.6rem 0.7rem;
+  background: rgba(16, 185, 129, 0.1);
+  color: #d1fae5;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.classroom-report-btn:hover,
+.classroom-report-btn:focus-visible {
+  background: rgba(16, 185, 129, 0.18);
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
+}
