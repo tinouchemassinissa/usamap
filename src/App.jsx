@@ -15,6 +15,7 @@ import LearningProgress from './components/LearningProgress';
 import ModeSelector from './components/ModeSelector';
 import LearningHub from './components/LearningHub';
 import StateDossier from './components/StateDossier';
+import HelpGuide from './components/HelpGuide';
 import { addSessionAttempt, addSessionGame, buildClassWorkbookSheets, createClassSession, endClassSession, finishSessionGame } from './classroomSession';
 import { downloadWorkbook } from './export/xlsxExport';
 import './index.css';
@@ -67,6 +68,7 @@ function App() {
   const [playerName, setPlayerName] = useState("");
   const [gameStarted, setGameStarted] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [mode, setMode] = useState(GAME_MODES.CLASSIC.id);
@@ -211,7 +213,7 @@ function App() {
   }, [score, highScore, mode]);
 
   useEffect(() => {
-    if (gameStarted && !gameOver && !currentFact && mode === 'TIME_ATTACK') {
+    if (gameStarted && !gameOver && !currentFact && !showHelp && mode === 'TIME_ATTACK') {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -226,7 +228,7 @@ function App() {
       if (timerRef.current) clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
-  }, [gameStarted, gameOver, currentFact, mode]);
+  }, [gameStarted, gameOver, currentFact, showHelp, mode]);
 
   useEffect(() => {
     if (!gameStarted || mode === 'REGIONS' || mode === 'STUDY') return;
@@ -926,6 +928,14 @@ function App() {
             ℹ️
           </button>
           <button
+            className="icon-btn help-btn"
+            onClick={() => setShowHelp(true)}
+            title="Help and how to use USA State Explorer"
+            aria-label="Open help and user guide"
+          >
+            ?
+          </button>
+          <button
             className="icon-btn theme-toggle"
             onClick={toggleTheme}
             title={theme === 'dark' ? "Switch to light theme" : "Switch to dark theme"}
@@ -1036,6 +1046,14 @@ function App() {
       <div className="game-container game-active">
         <button className="icon-btn home-btn" onClick={returnHome} title="Back to Menu">
           🏠
+        </button>
+        <button
+          className="icon-btn help-btn"
+          onClick={() => setShowHelp(true)}
+          title="Help for this game"
+          aria-label="Open help for this game"
+        >
+          ?
         </button>
         <button
           className="icon-btn theme-toggle"
@@ -1435,6 +1453,13 @@ function App() {
       )}
       </div>
       )}
+
+      <HelpGuide
+        open={showHelp}
+        onClose={() => setShowHelp(false)}
+        mode={mode}
+        gameStarted={gameStarted}
+      />
     </div>
   );
 }
