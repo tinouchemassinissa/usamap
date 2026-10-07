@@ -2548,7 +2548,7 @@ html[data-theme="light"] .region-faded {
 
 @media (max-width: 520px) {
   .theme-toggle {
-    right: max(3.25rem, calc(env(safe-area-inset-right) + 3rem));
+    right: max(3.8rem, calc(env(safe-area-inset-right) + 3.55rem));
   }
 }
 
