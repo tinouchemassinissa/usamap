@@ -919,7 +919,7 @@ function App() {
   return (
     <div className={'game-wrapper ' + (gameStarted ? 'game-wrapper-active' : 'game-wrapper-home')}>
       {!gameStarted ? (
-        <div className="game-container home-active" style={{ justifyContent: 'center' }}>
+        <div className="game-container home-active">
           <button className="icon-btn about-btn" onClick={() => setShowAbout(true)} title="About USA State Explorer" style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 100 }}>
             ℹ️
           </button>
@@ -971,7 +971,7 @@ function App() {
             </div>
           )}
 
-        <main className="glass-panel modal home-panel">
+        <main className="glass-panel home-panel">
           <div className="mascot">🦅</div>
           <h1 className="title">USA State Explorer</h1>
           
