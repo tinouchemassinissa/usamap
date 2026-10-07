@@ -2605,3 +2605,420 @@ html[data-theme="light"] .region-faded {
     overflow-y: visible !important;
   }
 }
+
+
+/* Help / user guide */
+.help-btn {
+  left: 5.25rem;
+  font-weight: 900;
+  font-family: inherit;
+}
+
+.help-overlay {
+  position: fixed !important;
+  inset: 0;
+  z-index: 5000;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: clamp(0.5rem, 2vw, 1.25rem);
+}
+
+.help-dialog {
+  width: min(1000px, 96vw);
+  height: min(880px, 92dvh);
+  max-width: 1000px;
+  max-height: 92dvh;
+  padding: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 0;
+  overflow: hidden;
+  text-align: left;
+  border-radius: 1.1rem;
+  background: var(--panel-bg);
+}
+
+.help-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem 0.9rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.help-header > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.help-header h2 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: clamp(1.45rem, 3vw, 2.15rem);
+  line-height: 1.1;
+}
+
+.help-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.help-close {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  background: var(--surface-faint);
+  color: var(--text-main);
+  font: inherit;
+  font-size: 1.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.help-close:hover,
+.help-close:focus-visible {
+  background: rgba(59, 130, 246, 0.14);
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
+}
+
+.help-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  padding: 0.7rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-faint);
+}
+
+.help-tabs button {
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.help-tabs button:hover {
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--text-main);
+}
+
+.help-tabs button.active {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(96, 165, 250, 0.42);
+  color: var(--text-main);
+}
+
+.help-tabs button:focus-visible {
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
+}
+
+.help-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: 1rem 1.25rem 1.25rem;
+  scrollbar-gutter: stable;
+}
+
+.help-section-stack {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.help-section-card {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.85rem;
+  background: var(--surface-faint);
+}
+
+.help-section-card h3 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 1rem;
+}
+
+.help-section-card p,
+.help-section-card li {
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.help-section-card p {
+  margin: 0;
+}
+
+.help-section-card ol,
+.help-section-card ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.help-section-card strong {
+  color: var(--text-main);
+}
+
+.help-lead {
+  font-size: 1.02rem;
+  color: var(--text-main) !important;
+}
+
+.help-tip {
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.65rem;
+  background: rgba(59, 130, 246, 0.08);
+  border-left: 3px solid var(--accent-blue);
+}
+
+.help-grid-two,
+.help-grid-three {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.help-grid-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.help-grid-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.help-grid-two > div,
+.help-grid-three > div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem;
+  border-radius: 0.65rem;
+  background: var(--surface-faint);
+  border: 1px solid var(--border-color);
+}
+
+.help-grid-two span,
+.help-grid-three span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.help-mode-list {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.help-mode-list details {
+  border: 1px solid var(--border-color);
+  border-radius: 0.65rem;
+  background: var(--surface-faint);
+  overflow: hidden;
+}
+
+.help-mode-list summary {
+  padding: 0.65rem 0.75rem;
+  color: var(--text-main);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.help-mode-list details[open] summary {
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(59, 130, 246, 0.07);
+}
+
+.help-mode-list details > p,
+.help-mode-list details > ul {
+  margin: 0.65rem 0.8rem;
+}
+
+.help-control-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.help-control-list > div {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 0.65rem;
+  align-items: start;
+  padding: 0.55rem;
+  border-radius: 0.65rem;
+  background: var(--surface-faint);
+}
+
+.help-control-list > div > span {
+  font-size: 1.35rem;
+  text-align: center;
+}
+
+.help-control-list strong {
+  display: block;
+  margin-bottom: 0.1rem;
+}
+
+.help-official-link {
+  width: fit-content;
+  color: #93c5fd;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.help-official-link:hover,
+.help-official-link:focus-visible {
+  text-decoration: underline;
+}
+
+html[data-theme="light"] .help-official-link {
+  color: #1d4ed8;
+}
+
+.help-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 1.25rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-faint);
+}
+
+.help-footer > span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.help-done {
+  width: auto;
+  max-width: none;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .help-btn {
+    left: max(3.9rem, calc(env(safe-area-inset-left) + 3.65rem));
+  }
+
+  .help-dialog {
+    width: min(96vw, 860px);
+    height: 94dvh;
+    max-height: 94dvh;
+  }
+
+  .help-grid-three {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .home-active > .help-btn,
+  .game-active > .help-btn {
+    left: max(0.65rem, env(safe-area-inset-left));
+    top: max(3.8rem, calc(env(safe-area-inset-top) + 3.55rem));
+  }
+
+  .help-overlay {
+    padding: 0;
+  }
+
+  .help-dialog {
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    border-inline: 0;
+  }
+
+  .help-header {
+    padding:
+      max(0.75rem, env(safe-area-inset-top))
+      0.8rem
+      0.7rem;
+  }
+
+  .help-header h2 {
+    font-size: 1.35rem;
+  }
+
+  .help-header p {
+    font-size: 0.78rem;
+  }
+
+  .help-tabs {
+    grid-template-columns: 1fr;
+    padding: 0.55rem 0.8rem;
+  }
+
+  .help-tabs button {
+    padding: 0.5rem 0.6rem;
+    text-align: left;
+  }
+
+  .help-content {
+    padding: 0.75rem 0.8rem;
+  }
+
+  .help-grid-two {
+    grid-template-columns: 1fr;
+  }
+
+  .help-footer {
+    padding:
+      0.6rem
+      0.8rem
+      max(0.6rem, env(safe-area-inset-bottom));
+  }
+
+  .help-footer > span {
+    display: none;
+  }
+
+  .help-done {
+    width: 100%;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) and (max-width: 950px) {
+  .game-active > .help-btn {
+    left: max(0.4rem, env(safe-area-inset-left));
+    top: max(2.8rem, calc(env(safe-area-inset-top) + 2.6rem));
+  }
+
+  .help-dialog {
+    width: min(96vw, 900px);
+    height: 96dvh;
+    max-height: 96dvh;
+  }
+
+  .help-header {
+    padding-block: 0.55rem;
+  }
+
+  .help-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-block: 0.45rem;
+  }
+
+  .help-content {
+    padding-block: 0.65rem;
+  }
+}
