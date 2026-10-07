@@ -197,20 +197,9 @@ function App() {
   }, [sessionStats]);
 
   useEffect(() => {
-    if (!gameStarted) {
-      document.documentElement.classList.remove('game-running');
-      document.body.classList.remove('game-running');
-      return;
+    if (gameStarted) {
+      window.scrollTo(0, 0);
     }
-
-    window.scrollTo(0, 0);
-    document.documentElement.classList.add('game-running');
-    document.body.classList.add('game-running');
-
-    return () => {
-      document.documentElement.classList.remove('game-running');
-      document.body.classList.remove('game-running');
-    };
   }, [gameStarted]);
 
   useEffect(() => {
@@ -1194,7 +1183,12 @@ function App() {
               <image href="https://flagcdn.com/w1280/us.png" x="0" y="0" width="1000" height="600" preserveAspectRatio="xMidYMid slice" />
             </pattern>
           </defs>
-          <ZoomableGroup className="rsm-zoomable-group" zoom={mapView.zoom} center={mapView.center}>
+          <ZoomableGroup
+            className="rsm-zoomable-group"
+            zoom={mapView.zoom}
+            center={mapView.center}
+            filterZoomEvent={() => false}
+          >
             <Geographies geography={geoUrl}>
               {({ geographies }) => (
                 <>

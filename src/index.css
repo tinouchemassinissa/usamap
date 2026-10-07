@@ -1429,19 +1429,6 @@ body {
 
 
 /* Active game must fit the browser viewport, not the previous page scroll height. */
-html.game-running,
-body.game-running {
-  width: 100%;
-  height: 100%;
-  overflow: hidden !important;
-  overscroll-behavior: none;
-}
-
-body.game-running #root {
-  height: 100dvh;
-  overflow: hidden;
-}
-
 .game-wrapper {
   width: 100%;
   min-height: 100dvh;
@@ -1453,9 +1440,9 @@ body.game-running #root {
 }
 
 .game-wrapper-active {
-  height: 100dvh;
+  height: auto;
   min-height: 100dvh;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .game-container.home-active {
@@ -1466,11 +1453,10 @@ body.game-running #root {
 
 .game-container.game-active {
   width: 100%;
-  height: 100dvh;
-  min-height: 0;
-  max-height: 100dvh;
-  overflow-x: hidden;
-  overflow-y: auto;
+  height: auto;
+  min-height: 100dvh;
+  max-height: none;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
@@ -2583,5 +2569,39 @@ html[data-theme="light"] .region-faded {
     height: max(210px, calc(100dvh - 190px)) !important;
     min-height: 210px;
     max-height: none;
+  }
+}
+
+
+/* Chromebook / touch-device scroll compatibility.
+   The document owns vertical scrolling; no nested 100dvh scroll trap. */
+.game-wrapper-active,
+.game-container.game-active {
+  height: auto !important;
+  min-height: 100dvh;
+  max-height: none !important;
+  overflow-x: clip !important;
+  overflow-y: visible !important;
+}
+
+.game-active .map-container,
+.game-active .map-container svg {
+  touch-action: pan-y pinch-zoom;
+}
+
+@media (max-width: 768px) {
+  .game-container.game-active {
+    height: auto !important;
+    min-height: 100dvh;
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) and (max-width: 950px) {
+  .game-container.game-active {
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: visible !important;
   }
 }
