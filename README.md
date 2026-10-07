@@ -53,6 +53,7 @@
 - Excel export is intentionally session-scoped: lifetime mastery, achievements, old sessions, and unrelated local data are not included.
 
 ### Experience
+- **Dark and Light themes** with a one-tap sun/moon control; the preference is remembered and first launch follows the device theme.
 - Bach's *Air on the G String* focus recording with mute/unmute and a remembered volume setting.
 - Completing a full 50-state challenge triggers the U.S.-flag map ceremony and public-domain U.S. Navy Band performance of *The Star-Spangled Banner*.
 - Responsive grouped Learn / Challenge / Explore interface.

@@ -105,6 +105,7 @@ function App() {
   const [geographyLevel, setGeographyLevel] = useState('region');
   const [journey, setJourney] = useState({ path: [], index: 0, start: '', destination: '' });
   const [musicEnabled, setMusicEnabled] = useState(true);
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark');
   const [focusVolume, setFocusVolume] = useState(0.34);
   const [victoryCelebration, setVictoryCelebration] = useState(false);
 
@@ -380,6 +381,18 @@ function App() {
     stopAnthem();
     setVictoryCelebration(false);
     triggerGameOver(scoreRef.current, true);
+  };
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    document.documentElement.dataset.theme = nextTheme;
+    localStorage.setItem('usaMapTheme', nextTheme);
+
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) {
+      themeMeta.setAttribute('content', nextTheme === 'light' ? '#eef4fb' : '#0f172a');
+    }
   };
 
   const toggleMusic = () => {
@@ -924,6 +937,14 @@ function App() {
             ℹ️
           </button>
           <button
+            className="icon-btn theme-toggle"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? "Switch to light theme" : "Switch to dark theme"}
+            aria-label={theme === 'dark' ? "Switch to light theme" : "Switch to dark theme"}
+          >
+            {theme === 'dark' ? "☀️" : "🌙"}
+          </button>
+          <button
             className="icon-btn music-toggle"
             onClick={toggleMusic}
             title={musicEnabled ? "Turn off classical focus music" : "Turn on classical focus music"}
@@ -1026,6 +1047,14 @@ function App() {
       <div className="game-container game-active">
         <button className="icon-btn home-btn" onClick={returnHome} title="Back to Menu">
           🏠
+        </button>
+        <button
+          className="icon-btn theme-toggle"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? "Switch to light theme" : "Switch to dark theme"}
+          aria-label={theme === 'dark' ? "Switch to light theme" : "Switch to dark theme"}
+        >
+          {theme === 'dark' ? "☀️" : "🌙"}
         </button>
         <button
           className="icon-btn music-toggle"
