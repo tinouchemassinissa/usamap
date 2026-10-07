@@ -89,7 +89,7 @@ function StudentHelp({ mode, gameStarted }) {
           <ol>
             {current.steps.map((step) => <li key={step}>{step}</li>)}
           </ol>
-          <p className="help-tip">Opening Help does not end or reset your game.</p>
+          <p className="help-tip">Opening Help does not end or reset your game. In Time Attack, the countdown pauses while Help is open.</p>
         </SectionCard>
       )}
 
@@ -240,7 +240,7 @@ export default function HelpGuide({ open, onClose, mode, gameStarted }) {
           <div>
             <span className="hub-eyebrow">GUIDE & SUPPORT</span>
             <h2 id="help-title">How to use USA State Explorer</h2>
-            <p>{gameStarted ? 'Your game is paused only by your attention—nothing is reset.' : 'Learn the app in a few minutes, then start exploring.'}</p>
+            <p>{gameStarted ? 'Nothing is reset while Help is open. Time Attack pauses until you close this guide.' : 'Learn the app in a few minutes, then start exploring.'}</p>
           </div>
           <button className="help-close" type="button" onClick={onClose} aria-label="Close help">×</button>
         </header>
