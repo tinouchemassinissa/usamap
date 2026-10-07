@@ -53,6 +53,7 @@
 - Excel export is intentionally session-scoped: lifetime mastery, achievements, old sessions, and unrelated local data are not included.
 
 ### Experience
+- **Built-in Help & Guide** with Student, Teacher & Class, and App Help sections. During gameplay it opens contextual instructions for the active mode; Time Attack pauses while Help is open.
 - **Dark and Light themes** with a one-tap sun/moon control; the preference is remembered and first launch follows the device theme.
 - Bach's *Air on the G String* focus recording with mute/unmute and a remembered volume setting.
 - Completing a full 50-state challenge triggers the U.S.-flag map ceremony and public-domain U.S. Navy Band performance of *The Star-Spangled Banner*.
@@ -182,3 +183,14 @@ The app includes only the 50 states; the District of Columbia is therefore not i
 Classroom Mode uses a separate local session record rather than exporting the learner's full local profile. Starting a class session creates a new session ID and timestamp. Every game played during that active session records the student name, mode, difficulty, result, accuracy, streak, and missed states. Every answer attempt records the target, response, correctness, score/streak after the attempt, and Census Region/Division/FIPS when applicable.
 
 The built-in XLSX writer is dependency-free so classroom reports remain available without loading a spreadsheet library from the network.
+
+
+## Built-in Help guide
+
+The **?** button is available on the Home dashboard and during gameplay.
+
+- **Student**: quick start, mastery/spaced repetition, lives/streaks/difficulty, and instructions for every game mode.
+- **Teacher & Class**: class-session setup, recommended lesson workflow, Excel workbook contents, privacy/scope, multi-device limitation, and suggested classroom sequences.
+- **App Help**: Home/theme/music controls, installation and offline behavior, official Census geography, update troubleshooting, accessibility, and device support.
+
+Opening Help does not reset the game. Time Attack pauses while the guide is open.
