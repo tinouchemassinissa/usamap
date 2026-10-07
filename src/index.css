@@ -2618,23 +2618,25 @@ html[data-theme="light"] .region-faded {
   position: fixed !important;
   inset: 0;
   z-index: 5000;
-  align-items: center;
-  justify-content: center;
-  overflow: auto;
-  overscroll-behavior: contain;
+  display: block;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding: clamp(0.5rem, 2vw, 1.25rem);
 }
 
 .help-dialog {
   width: min(1000px, 96vw);
-  height: min(880px, 92dvh);
+  height: auto;
+  min-height: 0;
   max-width: 1000px;
-  max-height: 92dvh;
+  max-height: none;
+  margin: 0 auto;
   padding: 0;
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  gap: 0;
-  overflow: hidden;
+  display: block;
+  overflow: visible;
   text-align: left;
   border-radius: 1.1rem;
   background: var(--panel-bg);
@@ -2728,11 +2730,9 @@ html[data-theme="light"] .region-faded {
 
 .help-content {
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: visible;
   touch-action: pan-y;
   padding: 1rem 1.25rem 1.25rem;
-  scrollbar-gutter: stable;
 }
 
 .help-section-stack {
@@ -2919,8 +2919,8 @@ html[data-theme="light"] .help-official-link {
 
   .help-dialog {
     width: min(96vw, 860px);
-    height: 94dvh;
-    max-height: 94dvh;
+    height: auto;
+    max-height: none;
   }
 
   .help-grid-three {
@@ -2941,9 +2941,11 @@ html[data-theme="light"] .help-official-link {
 
   .help-dialog {
     width: 100vw;
-    height: 100dvh;
+    min-height: 100dvh;
+    height: auto;
     max-width: none;
     max-height: none;
+    margin: 0;
     border-radius: 0;
     border-inline: 0;
   }
@@ -3005,8 +3007,8 @@ html[data-theme="light"] .help-official-link {
 
   .help-dialog {
     width: min(96vw, 900px);
-    height: 96dvh;
-    max-height: 96dvh;
+    height: auto;
+    max-height: none;
   }
 
   .help-header {
@@ -3020,5 +3022,36 @@ html[data-theme="light"] .help-official-link {
 
   .help-content {
     padding-block: 0.65rem;
+  }
+}
+
+
+/* Help scrolling regression guard: exactly one vertical scroll surface. */
+.help-overlay {
+  scrollbar-gutter: stable;
+}
+
+.help-dialog,
+.help-content {
+  overscroll-behavior: auto;
+}
+
+.help-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--panel-bg);
+  backdrop-filter: blur(14px);
+}
+
+@media (max-width: 560px) {
+  .help-overlay {
+    padding: 0;
+    overflow-y: auto;
+    touch-action: pan-y;
+  }
+
+  .help-dialog {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
